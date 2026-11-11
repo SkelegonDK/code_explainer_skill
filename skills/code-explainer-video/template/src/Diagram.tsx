@@ -11,15 +11,40 @@ const BOX = { width: 1728, height: 760 }; // the frame minus padding, title and 
 const CHAR = 0.6; // width of a Roboto Mono character, in em
 const LABEL = 24; // edge label font size
 
+// Two lines cross when the ends of each lie on opposite sides of the other.
+const side = (p: Point, q: Point, r: Point) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x));
+const cross = ([a, b]: Point[], [c, d]: Point[]) => side(a, b, c) * side(a, b, d) < 0 && side(c, d, a) * side(c, d, b) < 0;
+const pieces = (points: Point[]) => points.slice(1).map((q, i) => [points[i], q]);
+
+// A layout is clean when no straight piece of an edge, between dagre's points, crosses another piece or cuts into a box.
+// A line that cuts into a box crosses one of its diagonals.
+const clean = (g: Dagre) => {
+  const lines = g.edges().flatMap((e) => pieces(g.edge(e).points));
+  const diagonals = g.nodes().flatMap((v) => {
+    const { x, y, width: w, height: h } = g.node(v);
+    return [-1, 1].map((s) => [{ x: x - w / 2, y: y - (s * h) / 2 }, { x: x + w / 2, y: y + (s * h) / 2 }]);
+  });
+  return !lines.some((a, i) => [...lines.slice(i + 1), ...diagonals].some((b) => cross(a, b)));
+};
+
+const place = (graph: Graph, rankdir: "LR" | "TB", disableOptimalOrderHeuristic: boolean) => {
+  const ids = Object.keys(graph.nodes);
+  const g = new Dagre({ multigraph: true }).setGraph({ rankdir, nodesep: 48, ranksep: 72 }); // multigraph: edges between the same two nodes stay apart
+  ids.forEach((id) => g.setNode(id, { width: graph.nodes[id].length * CHAR * fontSize + 64, height: 2.5 * fontSize }));
+  // Edges go in by the order of their target in `nodes`, so dagre's first, depth-first ordering follows `nodes`.
+  // Each is named by its index in `edges`.
+  [...graph.edges.entries()].sort(([, a], [, b]) => ids.indexOf(a[1]) - ids.indexOf(b[1])).forEach(([i, [from, to, label = ""]]) =>
+    g.setEdge(from, to, { width: label.length * CHAR * LABEL + 16, height: label ? 2 * LABEL : 0, labelpos: "c" }, `${i}`),
+  );
+  layout(g, { disableOptimalOrderHeuristic });
+  return g;
+};
+
+// Siblings keep the order of `nodes` (left to right, or top to bottom) when that layout is clean.
+// Otherwise dagre reorders to reduce crossings, which breaks ties between siblings in no useful order.
 const arrange = (graph: Graph, rankdir: "LR" | "TB") => {
-  const g = new Dagre().setGraph({ rankdir, nodesep: 48, ranksep: 72 });
-  Object.entries(graph.nodes).forEach(([id, label]) =>
-    g.setNode(id, { width: label.length * CHAR * fontSize + 64, height: 2.5 * fontSize }),
-  );
-  graph.edges.forEach(([from, to, label = ""]) =>
-    g.setEdge(from, to, { width: label.length * CHAR * LABEL + 16, height: label ? 2 * LABEL : 0, labelpos: "c" }),
-  );
-  layout(g);
+  const listed = place(graph, rankdir, true);
+  const g = clean(listed) ? listed : place(graph, rankdir, false);
   const { width, height } = g.graph();
   return { g, width, height, scale: Math.min(1.5, BOX.width / width, BOX.height / height) };
 };
@@ -44,7 +69,7 @@ export const Diagram: React.FC<{ graph: Graph; prev: Graph | null; text: string;
   return (
     <svg width={width * scale} height={height * scale} viewBox={`0 0 ${width} ${height}`} style={{ margin: "auto", overflow: "visible", fontFamily }}>
       {graph.edges.map(([from, to, label], i) => {
-        const { points, x, y } = g.edge(from, to);
+        const { points, x, y, width: w } = g.edge({ v: from, w: to, name: `${i}` });
         const drawn = appear((Math.max(ids.indexOf(from), ids.indexOf(to)) + 2) * STAGGER); // once both its ends are in
         const [tail, tip] = points.slice(-2);
         const angle = (Math.atan2(tip.y - tail.y, tip.x - tail.x) * 180) / Math.PI;
@@ -53,9 +78,14 @@ export const Diagram: React.FC<{ graph: Graph; prev: Graph | null; text: string;
           <g key={i}>
             <path d={curve(points)} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - drawn} {...line} />
             <path d="M-14,-8 L0,0 L-14,8" transform={`translate(${tip.x} ${tip.y}) rotate(${angle})`} opacity={drawn ** 4} {...line} />
-            <text x={x} y={y} opacity={drawn} fontSize={LABEL} fill={tone(0.75)} stroke={tone(0)} strokeWidth={12} paintOrder="stroke" textAnchor="middle" dominantBaseline="central">
-              {label}
-            </text>
+            {label && (
+              <g opacity={drawn}>
+                <rect x={x - w / 2} y={y - 0.75 * LABEL} width={w} height={1.5 * LABEL} rx={8} fill={tone(0)} />
+                <text x={x} y={y} fontSize={LABEL} fill={tone(0.75)} textAnchor="middle" dominantBaseline="central">
+                  {label}
+                </text>
+              </g>
+            )}
           </g>
         );
       })}

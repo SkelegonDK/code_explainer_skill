@@ -9,6 +9,8 @@ export type Chart = Figure & { type: "bar" | "line"; data: Record<string, number
 const WIDTH = 1500; // the widest the plot gets
 const HEIGHT = 520; // of the plot: values sit above it and names below
 const SLOT = 300; // the widest one bar's or point's share of the width gets
+const LOW = 6; // the least height of a bar, so a bar of 0 can still be highlighted
+const CHAR = 0.6; // width of a Roboto Mono character, in em
 
 export const Chart: React.FC<{ chart: Chart; prev: Chart | null; text: string; seconds: number }> = ({ chart, prev, text, seconds }) => {
   const names = Object.keys(chart.data);
@@ -17,12 +19,16 @@ export const Chart: React.FC<{ chart: Chart; prev: Chart | null; text: string; s
   const slot = Math.min(SLOT, WIDTH / names.length);
   const width = slot * names.length;
   const bar = slot / 3;
-  const max = Math.max(...Object.values(chart.data));
+  const max = Math.max(...Object.values(chart.data)) || 1; // all zero: draw at the baseline
+  const values = names.map((name) => `${chart.data[name].toLocaleString("en-US")}${chart.unit ?? ""}`);
+  // Each row of text shrinks, all alike, until its longest entry fits one slot, so none is clipped or overlaps.
+  const fit = (texts: string[], size: number) => Math.min(size, (slot - 16) / (CHAR * Math.max(...texts.map((t) => t.length))));
 
   // A bar grows from the baseline. A point on a line fades in where it belongs.
   const points = names.map((name, i) => {
     const shown = appear(i * STAGGER);
-    return { name, shown, x: (i + 0.5) * slot, y: HEIGHT * (1 - (chart.data[name] / max) * (isLine ? 1 : shown)) };
+    const high = (HEIGHT * chart.data[name]) / max;
+    return { name, shown, x: (i + 0.5) * slot, y: HEIGHT - (isLine ? high : Math.max(LOW, high) * shown) };
   });
   const mark = ({ x, y, shown }: (typeof points)[number], fill: string, opacity: number) =>
     isLine ? (
@@ -42,11 +48,10 @@ export const Chart: React.FC<{ chart: Chart; prev: Chart | null; text: string; s
         <g key={p.name}>
           {mark(p, tone(0.45), 1)}
           {mark(p, `rgb(${HOT})`, heat(p.name))}
-          <text x={p.x} y={p.y - 28} opacity={p.shown * valued(p.name, i)} fill="currentColor" stroke={tone(0)} strokeWidth={10} paintOrder="stroke">
-            {chart.data[p.name].toLocaleString("en-US")}
-            {chart.unit}
+          <text x={p.x} y={p.y - 28} opacity={p.shown * valued(p.name, i)} fill="currentColor" stroke={tone(0)} strokeWidth={10} paintOrder="stroke" fontSize={fit(values, fontSize)}>
+            {values[i]}
           </text>
-          <text x={p.x} y={HEIGHT + 52} opacity={p.shown} fill={tone(0.75)} fontSize={28}>
+          <text x={p.x} y={HEIGHT + 52} opacity={p.shown} fill={tone(0.75)} fontSize={fit(names, 28)}>
             {p.name}
           </text>
         </g>

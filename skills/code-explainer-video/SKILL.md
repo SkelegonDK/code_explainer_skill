@@ -1,6 +1,6 @@
 ---
 name: "code-explainer-video"
-description: "Make a narrated developer explainer video (Remotion + ElevenLabs) about a line, block, file, or architecture of a codebase, for onboarding yourself or a teammate."
+description: "Make a narrated developer explainer video (Remotion + ElevenLabs) about a line, block, file, or architecture of a codebase, or about a language or library concept with no codebase, for onboarding yourself or a teammate."
 ---
 
 # Code explainer video
@@ -12,7 +12,19 @@ Stack: Remotion's Code Hike template (syntax-highlighted code that morphs betwee
 Files next to this SKILL.md ("the skill directory"):
 - `template/`: the Remotion source files copied into every video project.
 - `references/voice.md`: read in step 10, before generating narration.
-- `references/long-form.md`: read first when the video is 15-30 minutes; it splits the work into chapters that each go through steps 2-11.
+- `references/long-form.md`: read first when the video is 15-30 minutes; it splits the work into chapters, says who runs which step for each, and joins them.
+
+`<name>-draft/` and the video project `<name>/` go in the current directory unless the user names a place. Both are kept out of git (steps 2 and 7), so they never enter the user's repository.
+
+## Concept topics (no codebase)
+
+When the subject is a language or library concept ("how do variables work in JavaScript") rather than a repository, the code you research is code you write:
+
+- Write small runnable examples in `<name>-draft/examples/`. Run each one and record the command and its real output in `notes.md`.
+- Every claim maps to an example's path and line, or to a sentence in the official documentation; record its URL and the sentence.
+- Code beats are excerpts of the examples, saved as `NN.js` whatever the example's extension.
+- In step 6, give the reviewer the examples with the beats and ask it to rerun them. Tell it that the examples and the cited documentation stand in for the repository, and that diagram nodes are concepts, not modules.
+- Name every example `.mjs`, or `.cjs` when it needs `require` or non-strict code. A plain `.js` file changes meaning in step 7, because the project's `package.json` says `"type": "module"`.
 
 ## 1. Intake: four questions, in this order, before any work
 
@@ -25,10 +37,10 @@ Ask one at a time (AskUserQuestion when available). Do not skip or merge them.
    - **Expert in the subject**: knows how this is usually built, and wants what is unusual or risky here.
 
    If they don't know, use "Familiar with the subject".
-3. **How long should it take?** Offer: ~30 s (one line or block), 1-2 min (a function or module), ~5 min (a subsystem or flow), 15-30 min (codebase onboarding, built as chapters by parallel agents). If they don't know, recommend one based on what you found in question 1 and on the level: someone new to the subject needs more time for the same code.
+3. **How long should it take?** Offer: ~30 s (one line or block), ~1 min or ~2 min (a function or module), ~5 min (a subsystem or flow), 15-30 min (codebase onboarding, built as chapters by parallel agents). If they don't know, recommend one based on what you found in question 1 and on the level: someone new to the subject needs more time for the same code.
 4. **Is my understanding correct?** After reading the code, send back:
    - the one question the video answers, in one sentence;
-   - the title: a short phrase naming what the video explains, specific to this codebase (e.g. "How API sessions expire and renew", not "Code explainer"), and its file name, `<name>`, the title in kebab-case (`how-api-sessions-expire-and-renew`);
+   - the title: a short phrase naming what the video explains, specific to this codebase or concept (e.g. "How API sessions expire and renew", not "Code explainer"), and its file name, `<name>`, the title in kebab-case (`how-api-sessions-expire-and-renew`);
    - the level, the length and the beat count;
    - the outline: one line per beat (what is on screen + the point it makes);
    - anything you're leaving out on purpose.
@@ -39,18 +51,20 @@ When running unattended (no one to answer), pick the most reasonable reading, st
 ## 2. Research the code before writing a word
 
 - Read the actual code. Trace calls to their definitions; don't infer behaviour from names. For a large codebase, fan out with one read-only subagent per area, if your agent supports subagents, and keep only their conclusions.
+- Start the draft folder with `mkdir -p <name>-draft/beats && echo '*' > <name>-draft/.gitignore`; the `.gitignore` keeps it out of any enclosing repository.
 - Every claim in the narration must map to a file and line you read. Keep `<name>-draft/notes.md`, a log of `claim → path:line` while you research; you use it when fixing problems found in step 6.
 - Note what a developer would trip on: hidden side effects, ordering assumptions, error paths, config that changes behaviour, naming that lies.
 
 ## 3. Plan beats to the time budget
 
-A **beat** is one visual plus 1-3 sentences of narration. Narration runs at about 150 words per minute (2.5 words/s); each beat gets a 0.6 s tail pause.
+A **beat** is one visual plus 1-3 sentences of narration. Narration runs at about 150 words per minute (2.5 words/s), and each beat ends with a 0.6 s pause, so words ≈ (seconds − 0.6 × beats) × 2.5.
 
 | Budget | Beats | Words |
 |---|---|---|
 | 30 s | 3-4 | ~70 |
-| 1-2 min | 6-12 | 150-280 |
-| 5 min | 20-30 | ~700 |
+| 1 min | 6-8 | ~140 |
+| 2 min | 10-14 | ~280 |
+| 5 min | 20-30 | ~710 |
 | 15-30 min | chapters of 3-5 min, see `references/long-form.md` | |
 
 The level sets what the script assumes and where it spends its time:
@@ -66,10 +80,10 @@ Beat rules:
 - Architecture first, then zoom in: diagram, then the entry-point code, then the interesting line.
 - Explain purpose, not lines. Each code beat says what the code is *for* and how it connects to the previous beat, then points at the one or two lines that matter. Never walk through a block line by line.
 - Code beats: at most 16 lines (the bottom of the frame is reserved for captions) and 80 characters per line. Cut irrelevant lines and replace them with a `// ...` comment. Consecutive beats that show the same snippet with a different highlight animate smoothly, so reuse snippets and move the highlight.
-- Highlight what the narration is talking about with a Code Hike comment directly above it: `// !mark` (next line) or `// !mark(1:4)` (next four lines). Use the language's comment syntax (`# !mark` in Python).
-- Diagram beats: boxes and arrows, at most 8 nodes, labels of at most 24 characters. The layout is automatic. Give each sentence of the narration one node to talk about, in the order the arrows run, because the highlight moves from node to node as the sentences are spoken. A tree, such as a file tree or a call tree, is a diagram whose arrows all run from parent to child.
+- Highlight what the narration is talking about with a Code Hike comment directly above it: `// !mark` (next line) or `// !mark(1:4)` (next four lines). Use the language's comment syntax (`# !mark` in Python). A code highlight holds for the whole beat; to move it, start a new beat with the same snippet.
+- Diagram beats: boxes and arrows, at most 8 nodes, labels of at most 24 characters. The layout is automatic. Give each sentence of the narration one node to talk about, or a few that belong together, in the order the arrows run, because the highlight moves from node to node as the sentences are spoken. A tree, such as a file tree or a call tree, is a diagram whose arrows all run from parent to child.
 - Chart beats: a bar chart to compare 2 to 8 values, or a line chart for 3 to 8 values that have an order, such as releases or input sizes. One series, names of at most 10 characters. Use only numbers you read in the repository or got by running a command. Never estimate a number.
-- Narration is written for the ear: short sentences, say identifiers the way devs say them ("the handle-request function"), no code read aloud symbol by symbol, no line numbers spoken.
+- Narration is written for the ear: short sentences, say identifiers the way devs say them ("the handle-request function"), no code read aloud symbol by symbol, no line numbers spoken. A sentence ends at `.`, `!` or `?` followed by a space, so avoid abbreviations such as "e.g." in narration: they split a sentence and shift `focus`.
 
 ## 4. Write the beats
 
@@ -111,8 +125,8 @@ beats/02.diagram.json
 }
 ```
 
-- `nodes` maps an id to its label. The nodes appear on screen in the order listed.
-- An edge is `[from, to]` or `[from, to, label]`.
+- `nodes` maps an id to its label. The nodes appear on screen in the order listed. Children are also placed in that order (left to right when the arrows run down, top to bottom when they run right) whenever it needs no crossed edges and no edge through a box, which a tree always satisfies; otherwise the layout may reorder them.
+- An edge is `[from, to]` or `[from, to, label]`. Two edges between the same pair of nodes are both drawn. An edge from a node to itself is not allowed.
 
 Example chart beat:
 
@@ -131,21 +145,21 @@ beats/06.chart.json
 }
 ```
 
-- `type` is `bar` or `line`. `data` maps a name to its value, in the order shown. Values are measured from zero and cannot be negative.
-- `unit` is optional and is appended to each value as written, so include the space: `" ms"`, but `"%"`.
+- `type` is `bar` or `line`. `data` maps a name to its value, in the order shown. Values are measured from zero and cannot be negative. A value of 0 is drawn as a thin stub.
+- `unit` is optional and is appended to each value as written, so include the space: `" ms"`, but `"%"`. A value or name too long for its slot is shrunk to fit, so scale large numbers into the unit: `12.3` with `" M"`, not `12300000`.
 - `source` is the file the values come from, or the command that produced them. It is not shown; the fact-checker uses it.
 - Every bar shows its value. A line shows the value of its first point, its last point and the point in focus.
 
 In both diagrams and charts:
 
-- `focus` has one entry per sentence of the narration: the node id or the `data` name that sentence is about, or `null` for none. The last entry holds for any sentences after it.
+- `focus` has one entry per sentence of the narration: the node id or `data` name that sentence is about, a list of them (`["let", "const"]`) to highlight together, or `null` for none. The last entry holds for any sentences after it.
 - To keep a diagram or chart on screen across beats, repeat the file in the next beat and change only `focus`. It then stays where it is and only the highlight moves.
 
 ## 5. Check length and diagrams (no Remotion yet)
 
-1. **Length.** Estimate the runtime: narration words (`grep -hv '^# ' <name>-draft/beats/*.txt | wc -w`) ÷ 2.5, plus 0.6 s per beat. If it's more than 15% over or under the budget, cut or add beats now.
+1. **Length.** Estimate the runtime: narration words (`grep -hv '^# ' <name>-draft/beats/*.txt | wc -w`) ÷ 2.5, plus 0.6 s per beat. If it's more than 10% over or under the budget, cut or add beats now.
 2. **Code excerpts.** At most 16 lines and 80 characters per line, not counting `!mark` comments.
-3. **Diagrams and charts.** A diagram has at most 8 nodes and 24 characters per label, and every id in `edges` and `focus` is a key of `nodes`. A chart has 2 to 8 values, names of at most 10 characters and a `source`, and every name in `focus` is a key of `data`. `focus` has no more entries than the narration has sentences. A beat that continues a diagram or chart differs from the beat before only in `focus`; check with `diff`.
+3. **Diagrams and charts.** A diagram has at most 8 nodes and 24 characters per label, every id in `edges` and `focus` is a key of `nodes`, and no edge goes from a node to itself. A chart has 2 to 8 values, names of at most 10 characters and a `source`, and every name in `focus` is a key of `data`. `focus` has no more entries than the narration has sentences. A beat that continues a diagram or chart differs from the beat before only in `focus`; check with `diff`.
 
 ## 6. Independent fact-check (before any Remotion code or narration)
 
@@ -155,31 +169,36 @@ The author of a script is the worst person to check it. Have a reviewer that did
   > Check this explainer script against the code. List every factual claim in the narration and in the on-screen titles. For each, find the code that confirms or contradicts it, tracing calls to their definitions. Return one row per claim: `beat | claim | correct / wrong / unverifiable | path:line | why`. For each diagram (`.diagram.json`, where `nodes` maps ids to labels and an edge is `[from, to, label]`), check that every node is a real module, function or component, that every edge is a real call or data flow in the direction drawn, and that no edge important to the narration is missing; report each problem as a row. For each chart (`.chart.json`), check every value and the unit against its `source`, opening the file or rerunning the command; a value you cannot check is `unverifiable`. Also flag code excerpts that differ from the source (other than `// ...` cuts and `!mark` comments), titles whose `path:line` range is wrong, anything important about this code that the script states misleadingly, and code beats whose narration walks through the lines without saying what the code is for.
 - **Otherwise**, do a second pass yourself: for each claim, node and edge, reopen the cited code and check it there, not against `notes.md`.
 
-Fix every `wrong` row, cut or soften every `unverifiable` one, and rewrite flagged line-by-line beats around their purpose. Rerun step 5 for changed diagrams and charts, and send only the changed beats back for a second check.
+Fix every `wrong` row, cut or soften every `unverifiable` one, and rewrite flagged line-by-line beats around their purpose. Rerun step 5 after the fixes, because they change the length too. Send only the changed beats back, to the same reviewer if it can be resumed, otherwise to a fresh one with the same brief. Repeat until a check returns no `wrong` or `unverifiable` row; fix any remaining wording notes without another round.
 
 ## 7. Project setup (once per video)
 
-Only now build the video project. Set `SKILL_DIR` to the skill directory, then:
+Only now build the video project. Run this as one shell command, with the skill directory's absolute path in place of `<skill dir>`, because many agents do not keep variables or the working directory between commands:
 
 ```bash
-npx create-video@latest --yes --code-hike <name>
-mv <name>-draft/* <name>/ && rmdir <name>-draft && cd <name>
-npx remotion add @remotion/media && npm i @dagrejs/dagre && npm rm twoslash-cdn && rm public/code*
-rm src/calculate-metadata/process-snippet.ts src/annotations/Callout.tsx src/annotations/Error.tsx src/ProgressBar.tsx src/ReloadOnCodeChange.tsx
-cp -R "$SKILL_DIR/template/." .
+SKILL_DIR="<skill dir>" && npx create-video@latest --yes --code-hike <name> \
+  && rm -rf <name>/.git && echo '*' >> <name>/.gitignore \
+  && mv <name>-draft/* <name>/ && rm -r <name>-draft && cd <name> \
+  && npx remotion add @remotion/media && npm i @dagrejs/dagre@3 && npm rm twoslash-cdn && rm public/code* \
+  && rm src/calculate-metadata/process-snippet.ts src/annotations/Callout.tsx src/annotations/Error.tsx src/ProgressBar.tsx src/ReloadOnCodeChange.tsx \
+  && cp -R "$SKILL_DIR/template/." .
 ```
 
-`create-video` refuses to scaffold into an existing folder, which is why the script lives in `<name>-draft/` until now. Twoslash is removed on purpose: it flags every unresolved import in a code excerpt as a red error. The copied files replace the template's composition with one driven by `beats/`:
+Every later command runs in `<name>/`; start each with `cd <name> &&` if your shell does not keep the directory.
+
+`create-video` refuses to scaffold into an existing folder, which is why the script lives in `<name>-draft/` until now. Outside a git repository it also makes `<name>/` a repository of its own; inside one it does not, and the project shows up as untracked files there. Removing `.git` and adding `*` to the project's `.gitignore` keeps the project out of every repository in both cases. Twoslash is removed on purpose: it flags every unresolved import in a code excerpt as a red error. Dagre is pinned to major version 3 because the layout depends on it. The scaffold's config files, `src/index.ts`, `src/utils.ts`, `src/annotations/InlineToken.tsx` and `src/calculate-metadata/theme.tsx` stay. The copied files replace the template's composition with one driven by `beats/`:
 
 - `scripts/build.mjs` turns `beats/` into `public/beats/` (audio, visuals, `manifest.json`), measures each beat's audio and prints each beat's frame range.
 - `src/Main.tsx` plays the beats in sequence: title, visual, audio, captions.
 - `src/Diagram.tsx` and `src/Chart.tsx` draw diagram and chart beats, and `src/figure.ts` times their animation.
 - `src/annotations/Mark.tsx` implements the `!mark` highlight. `src/Captions.tsx` times caption chunks across each beat's audio.
 
+Code excerpts in `beats/` are not meant to compile, so do not run the project's `tsc` or `npm run lint`: they report errors there.
+
 ## 8. Draft build (no credits)
 
-1. `node scripts/build.mjs` with no `beats/*.mp3` and no key writes silent placeholder audio at the estimated length and prints each beat's frame range and the total.
-2. Render stills of the moments with the most on screen, and of the moment each highlight lands (about 1.5 s into a beat): `npx remotion still Main out/check.png --frame=<n> --scale=0.5`. Take `<n>` from the frame ranges the build printed; 45 frames are 1.5 s. Look at them. Fix overflowing lines, highlights on the wrong line, and captions covering code.
+1. `node scripts/build.mjs` with no `beats/*.mp3` and no key writes silent placeholder audio at the estimated length, prints each beat's frame range and ends with the video's length (`8 beats, 76.0s of video`). It stops with a one-line message naming the beat when a `.txt` or visual is missing, a beat has more than one visual, an id in `edges` or `focus` is unknown, `focus` has more entries than the narration has sentences, or an edge goes from a node to itself. Fix that beat and run it again.
+2. Render stills of the moments with the most on screen, and of the moment each highlight lands (about 1.5 s into a beat): `npx remotion still Main out/check.png --frame=<n> --scale=0.5`. Take `<n>` from the frame ranges the build printed; 45 frames are 1.5 s. The first still after setup sometimes fails with a delayRender timeout; run it once more. If stills and renders keep failing with "Waiting for root component to load", which happens on a busy machine, add `--browser-executable="<path to an installed Chrome>"` to every `remotion` command. Look at the stills. Fix overflowing lines, highlights on the wrong line, and captions covering code.
 
 ## 9. Animate the diagrams and charts (no credits)
 
@@ -194,18 +213,24 @@ A still cannot show motion, so check each run of diagram or chart beats on a con
    npx remotion render Main out/anim.mp4 --frames=<first>-<last> --scale=0.5
    ffmpeg -y -v error -i out/anim.mp4 -vf "fps=2,scale=480:-1,tile=4x6" out/anim-%d.png
    ```
-2. Read every sheet left to right, top to bottom. In each tile the highlighted node, bar or point must be the one the caption is talking about. The nodes must appear in an order that follows the arrows. A continued diagram or chart must not move or rebuild.
+   A figure builds in within its first two seconds, too fast for this sheet, so also tile the first two seconds of each beat that builds a new diagram or chart at ten frames per second (`<f>` is the beat's first frame, 60 frames are 2 s):
+   ```bash
+   npx remotion render Main out/build.mp4 --frames=<f>-<f+59> --scale=0.5
+   ffmpeg -y -v error -i out/build.mp4 -vf "fps=10,scale=480:-1,tile=4x5" out/build-%d.png
+   ```
+2. Read every sheet left to right, top to bottom. In each tile the highlighted node, bar or point must be the one the caption is talking about. On the build sheets the nodes must appear in an order that follows the arrows. A continued diagram or chart must not move or rebuild.
 3. Render a still of the last frame of each of these beats. Every label and value must be easy to read, and nothing may overlap or touch the captions.
-4. Fix problems in the JSON, then rebuild and check again. Reorder `nodes` to change the order of appearance. Realign `focus` with the sentences. Split a beat whose narration covers more than three nodes or values. Shorten labels, or drop a node or a value, when the text is small or crowded. A diagram whose nodes, edges or labels changed, and a chart whose values changed, goes back through step 6.
+4. Fix problems in the JSON, then rebuild and check again. Reorder `nodes` to change the order of appearance, and the order of children where the layout allows it (step 4). Realign `focus` with the sentences. Split a beat whose narration covers more than three nodes or values. Shorten labels, or drop a node or a value, when the text is small or crowded. A diagram whose nodes, edges or labels changed, and a chart whose values changed, goes back through step 6.
 
 ## 10. Voice and render
 
 1. Read `references/voice.md` and generate one narration file per beat with the first option available: the ElevenLabs connector, an ElevenLabs API key, another text-to-speech provider, or none (silent video with captions). Use one voice for the whole video.
-2. `node scripts/build.mjs` again. It uses `beats/NN.mp3` when present, so changing one beat means replacing just that file.
+2. `node scripts/build.mjs` again. Each beat's audio comes from `beats/NN.mp3`, else the API when a key is set, else silent placeholder. A rebuild without the key keeps beats voiced through the API. The build never plays stale narration: if a beat's narration changed and its audio did not, it stops and names the beat to re-voice. Changing the voice or the model re-voices every API-voiced beat.
 3. Render once: `npx remotion render Main out/<name>.mp4 --metadata title="<title>"`. Check that video and audio durations match (`ffprobe -v error -show_entries stream=codec_type,duration -of csv=p=0 out/<name>.mp4`) and, unless the video is meant to be silent, that the audio is not (`ffmpeg -i out/<name>.mp4 -af volumedetect -vn -f null - 2>&1 | grep mean_volume`; placeholder audio reads about -91 dB).
 
 ## 11. Before handing over
 
 - Watch, or at least listen to, the first and last beats and one in the middle. If an identifier is mispronounced, respell it phonetically in `NN.txt` and re-voice only that beat. Captions show the narration text, so a phonetic respelling appears there too; keep respellings readable.
-- Any narration, code excerpt, diagram or chart that changed after step 6 goes back through it.
-- Deliver `out/<name>.mp4` under its title, with a one-line summary of the question it answers. Never upload or publish it anywhere without explicit permission.
+- If you cannot listen, say so in the hand-over: pronunciation is unchecked. List the identifiers most likely to be mispronounced, with their beats, so the user knows where to listen. Transcribing the audio to check it costs credits, so do it only if the user agrees.
+- Any narration, code excerpt, diagram or chart that changed after step 6 goes back through it. The wording fixes that step 6 lets you make without another round are the one exception.
+- Deliver `out/<name>.mp4` under its title, with a one-line summary of the question it answers. Tell the user where the project folder `<name>/` is and that it is not part of their repository's history. Never upload or publish it anywhere without explicit permission.

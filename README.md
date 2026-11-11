@@ -1,6 +1,6 @@
 # code-explainer-video
 
-An agent skill that turns a piece of code into a narrated, animated explainer video. It works on any scope: one line, a function, a file, or a whole architecture.
+An agent skill that turns a piece of code into a narrated, animated explainer video. It works on any scope: one line, a function, a file, or a whole architecture. It also explains language and library concepts with no codebase, using small examples it writes and runs.
 
 You ask your coding agent something like *"make a 2-minute video explaining how a request gets authenticated in this repo"*. The agent reads the code, writes a script, checks the outline with you, and renders an MP4. The video has syntax-highlighted code that morphs between steps, animated diagrams and charts, a voiceover, and burnt-in captions.
 
@@ -12,7 +12,7 @@ Reading unfamiliar code is slow, and written docs drift out of date. A short vid
 - explain a tricky bug or a PR to a reviewer;
 - record how a subsystem works before the person who wrote it moves on.
 
-The skill is written for developers watching. It shows real code, explains *why* and *how*, and avoids analogies meant for non-technical viewers. Every claim in the narration has to map to a file and line the agent actually read, and the agent fact-checks the script against those notes before it hands the video over.
+The skill is written for developers watching. It shows real code, explains *why* and *how*, and avoids analogies meant for non-technical viewers. Every claim in the narration has to map to a file and line the agent actually read, and a reviewer that did not write the script checks it against the code itself before anything is built.
 
 ## How it works
 
@@ -65,20 +65,21 @@ Explain how jobs move through the queue in this repo, about 5 minutes. I'm new t
 Make a 20-minute onboarding video for this codebase.
 ```
 
-Each video gets a title that names what it explains, proposed with the outline for you to approve, for example *How API sessions expire and renew*. The file is named after it (`how-api-sessions-expire-and-renew/out/how-api-sessions-expire-and-renew.mp4`), and the title is written into the MP4's metadata so video players show it. Long-form videos also get one titled file per chapter. The agent never uploads or publishes the video unless you explicitly ask it to.
+Each video gets a title that names what it explains, proposed with the outline for you to approve, for example *How API sessions expire and renew*. The file is named after it (`how-api-sessions-expire-and-renew/out/how-api-sessions-expire-and-renew.mp4`), and the title is written into the MP4's metadata so video players show it. The project folder goes in the current directory unless you name a place, and it is kept out of your repository's git history. Long-form videos also get one titled file per chapter. The agent never uploads or publishes the video unless you explicitly ask it to.
 
 ## Getting the most out of ElevenLabs
 
 [ElevenLabs](https://elevenlabs.io) gives the best results and is the default. There are two ways to connect it.
 
-**The ElevenLabs connector (recommended).** Connect ElevenLabs in your agent (in Claude, under connector settings). The agent then voices each beat directly, with no API key to manage. Each connector call produces two takes and charges for both, so the agent tells you the credit cost before it voices more than about ten beats.
+**The ElevenLabs connector (recommended).** Connect ElevenLabs in your agent (in Claude, under connector settings). The agent then voices each beat directly, with no API key to manage. It asks for one take per beat, since the video uses only one, and prices the narration first, so it tells you the credit cost before it voices more than about ten beats. It uses the `eleven_v4` model.
 
-**An API key.** Create a key in the ElevenLabs dashboard and give it to the agent when asked. The agent keeps it in an environment variable and never writes it to a file. This path costs about half as much per beat because it makes one take. It also sends the previous and next beat's text with each request, which keeps the intonation consistent across beats.
+**An API key.** Create a key in the ElevenLabs dashboard and give it to the agent when asked. The agent keeps it in an environment variable and never writes it to a file. This path also makes one take per beat, with `eleven_multilingual_v2` by default, and it sends the previous and next beat's text with each request, which keeps the intonation consistent across beats.
 
 Tips:
 
 - **Approve the outline before voicing.** Credits are spent per character of narration. Changes are cheap during the silent draft pass and expensive afterwards.
-- **Change one beat at a time.** The build script re-voices only beats whose narration changed, so fixing one sentence costs one beat.
+- **Change one beat at a time.** Only beats whose narration changed need new audio, so fixing one sentence costs one beat. The build stops rather than play audio that no longer matches its narration.
+- **Use one path for the whole video.** The two paths use different models, so mixing them within a video changes how beats sound.
 - **Use one calm narrator for the whole video,** and for every chapter of a long one. The skill picks from ElevenLabs' educational voices by default. Name a voice if you have a favourite.
 - **Fix pronunciation by respelling.** If a voice mangles an identifier, the agent respells it phonetically in that beat's script and re-voices only that beat.
 - **Budget for length.** One minute of narration is about 150 words, or roughly 900 characters. Check the [pricing page](https://elevenlabs.io/pricing) to see how many credits your plan includes and how many each model uses per character.
@@ -91,7 +92,7 @@ You still get a full video.
 - **Another text-to-speech provider.** The skill accepts one audio file per beat from any source: OpenAI, Google Cloud, Azure or Amazon Polly. Tell the agent which one to use.
 - **Free and local.** [Kokoro](https://github.com/hexgrad/kokoro) and [Piper](https://github.com/rhasspy/piper) run offline and sound good. On macOS, the built-in `say` command works with no setup, though it sounds robotic.
 
-The agent saves each beat as `beats/NN.mp3` and converts other formats with `ffmpeg`. The rest of the pipeline stays the same. You can switch to ElevenLabs later and re-voice without rebuilding anything else.
+The agent saves each beat as `beats/NN.mp3` and converts other formats with `ffmpeg`. The rest of the pipeline stays the same. You can switch to ElevenLabs later and re-voice every beat without rebuilding anything else.
 
 ## Repository layout
 
