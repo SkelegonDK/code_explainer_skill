@@ -2,7 +2,7 @@
 
 An agent skill that turns a piece of code into a narrated, animated explainer video. It works on any scope: one line, a function, a file, or a whole architecture.
 
-You ask your coding agent something like *"make a 2-minute video explaining how a request gets authenticated in this repo"*. The agent reads the code, writes a script, checks the outline with you, and renders an MP4. The video has syntax-highlighted code that morphs between steps, Mermaid architecture diagrams, a voiceover, and burnt-in captions.
+You ask your coding agent something like *"make a 2-minute video explaining how a request gets authenticated in this repo"*. The agent reads the code, writes a script, checks the outline with you, and renders an MP4. The video has syntax-highlighted code that morphs between steps, animated diagrams and charts, a voiceover, and burnt-in captions.
 
 ## Why
 
@@ -16,14 +16,15 @@ The skill is written for developers watching. It shows real code, explains *why*
 
 ## How it works
 
-1. **Intake.** The agent asks three questions, one at a time: what you need to understand, how long the video should be (30 s to 30 min), and whether its outline is correct. It builds nothing until you approve the outline.
+1. **Intake.** The agent asks four questions, one at a time: what you need to understand, how well you know the subject (new to it, familiar with it, or expert in it), how long the video should be (30 s to 30 min), and whether its outline is correct. The level sets what the script assumes you know. The agent builds nothing until you approve the outline.
 2. **Research.** The agent traces the code to its definitions and keeps a `claim → path:line` log.
-3. **Script.** The agent writes the script as *beats*. Each beat is one visual (a code excerpt or a Mermaid diagram) and one to three sentences of narration, sized to the time budget at about 150 words per minute.
-4. **Length and diagram check.** The agent estimates the runtime from the word count, renders every Mermaid diagram on its own, and checks that each one renders, is readable, and keeps its layout from beat to beat.
-5. **Independent fact-check.** A fresh reviewer, which did not write the script, checks every claim, code excerpt and diagram against the code. Where the agent supports subagents this is a separate agent. Otherwise the agent does a second pass, reopening each piece of cited code. Nothing is built until the script passes.
+3. **Script.** The agent writes the script as *beats*. Each beat is one visual (a code excerpt, a diagram or a chart) and one to three sentences of narration, sized to the time budget at about 150 words per minute.
+4. **Length and diagram check.** The agent estimates the runtime from the word count and checks every diagram and chart against the size limits.
+5. **Independent fact-check.** A fresh reviewer, which did not write the script, checks every claim, code excerpt, diagram and chart value against the code. Where the agent supports subagents this is a separate agent. Otherwise the agent does a second pass, reopening each piece of cited code. Nothing is built until the script passes.
 6. **Draft build.** Only now does the agent create the [Remotion](https://www.remotion.dev/) project from the [Code Hike](https://codehike.org/) template. It builds the video with silent placeholder audio and renders stills to catch overflowing code and highlights on the wrong line. This costs no credits.
-7. **Voice and render.** The agent voices each beat, renders once, and checks that audio and video line up.
-8. **Long form.** For 15 to 30 minute onboarding videos, the agent plans chapters, writes them with parallel subagents, fact-checks each one, builds them, and joins them into one file. It also keeps the individual chapter files.
+7. **Diagram and chart animation.** Diagrams (flows and trees) and charts (bar and line) are drawn in Remotion, not imported as images. Boxes appear one by one, arrows and lines draw themselves, bars grow, and a highlight moves from item to item as the narration reaches each one. The agent checks the motion on contact sheets.
+8. **Voice and render.** The agent voices each beat, renders once, and checks that audio and video line up.
+9. **Long form.** For 15 to 30 minute onboarding videos, the agent plans chapters, writes them with parallel subagents, fact-checks each one, builds them, and joins them into one file. It also keeps the individual chapter files.
 
 The full procedure is in [`skills/code-explainer-video/SKILL.md`](skills/code-explainer-video/SKILL.md).
 
@@ -32,7 +33,6 @@ The full procedure is in [`skills/code-explainer-video/SKILL.md`](skills/code-ex
 - An agent that supports [Agent Skills](https://agentskills.io), such as Claude Code, Codex, Gemini CLI, OpenCode or GitHub Copilot.
 - Node.js 20.19 or newer.
 - `ffmpeg` and `ffprobe` (`brew install ffmpeg` on macOS).
-- `@mermaid-js/mermaid-cli`. The skill installs it if `mmdc` is missing.
 
 Remotion downloads its own headless browser on the first render.
 
@@ -61,7 +61,7 @@ Ask in plain language. The agent picks up the skill from its description, or you
 
 ```text
 Make a 30-second video explaining the retry loop in src/http/client.ts.
-Explain how jobs move through the queue in this repo, about 5 minutes.
+Explain how jobs move through the queue in this repo, about 5 minutes. I'm new to it.
 Make a 20-minute onboarding video for this codebase.
 ```
 
@@ -97,16 +97,16 @@ The agent saves each beat as `beats/NN.mp3` and converts other formats with `ffm
 
 ```text
 skills/code-explainer-video/
-  SKILL.md                 the workflow: intake, research, beats, draft, fact-check, voice, render
+  SKILL.md                 the workflow: intake, research, beats, fact-check, draft, animation, voice, render
   template/                Remotion source files copied over the official Code Hike template
-    scripts/build.mjs      beats/ → audio, rendered diagrams and a manifest
-    src/                   composition, captions, highlight annotation
+    scripts/build.mjs      beats/ → audio, visuals and a manifest
+    src/                   composition, diagrams, charts, captions, highlight annotation
   references/
     voice.md               ElevenLabs connector, API key, other providers, silent fallback
     long-form.md           15-30 minute videos built as parallel chapters
 ```
 
-The agent scaffolds a fresh project from the official Code Hike template for each video and copies `template/` over it. The template files were last tested with Remotion 4.0.542.
+The agent scaffolds a fresh project from the official Code Hike template for each video and copies `template/` over it. The template files were last tested with Remotion 4.0.543 and dagre 3.1.3.
 
 ## License
 

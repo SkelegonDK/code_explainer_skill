@@ -1,6 +1,8 @@
 import { AnnotationHandler, InnerLine } from "codehike/code";
 import { interpolate, useCurrentFrame } from "remotion";
 
+export const HOT = "250, 204, 21"; // the highlight colour for code lines and diagram nodes
+
 // `// !mark` (next line) or `// !mark(3:5)`. Fades in after the 30-frame code transition.
 export const mark: AnnotationHandler = {
   name: "mark",
@@ -10,8 +12,8 @@ export const mark: AnnotationHandler = {
     return (
       <div
         style={{
-          borderLeft: `6px solid rgba(250, 204, 21, ${on ? opacity : 0})`,
-          backgroundColor: `rgba(250, 204, 21, ${on ? opacity * 0.14 : 0})`,
+          borderLeft: `6px solid rgba(${HOT}, ${on ? opacity : 0})`,
+          backgroundColor: `rgba(${HOT}, ${on ? opacity * 0.14 : 0})`,
           paddingLeft: 16,
         }}
       >

@@ -1,4 +1,4 @@
-// Turns beats/NN.{txt,<code ext>,mmd} into public/beats/ (audio, visuals, manifest.json).
+// Turns beats/NN.{txt,<code ext>,diagram.json,chart.json} into public/beats/ (audio, visuals, manifest.json).
 // Usage: ELEVENLABS_API_KEY=... VOICE_ID=... node scripts/build.mjs
 // Audio per beat, first match wins: beats/NN.mp3 (e.g. from the ElevenLabs connector),
 // the ElevenLabs API (ELEVENLABS_API_KEY + VOICE_ID), or silent placeholder audio at ~150 wpm.
@@ -7,6 +7,8 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFi
 
 const SRC = "beats";
 const OUT = "public/beats";
+const FPS = 30; // as in src/Root.tsx
+const TAIL = 0.6; // seconds of pause after each beat, so the viewer can read
 const { ELEVENLABS_API_KEY: KEY, VOICE_ID, MODEL_ID = "eleven_multilingual_v2" } = process.env;
 mkdirSync(OUT, { recursive: true });
 
@@ -20,7 +22,6 @@ const beats = ids.map((id) => {
     id,
     title: hasTitle ? first.slice(2) : "",
     text: (hasTitle ? rest : [first, ...rest]).join(" ").trim(),
-    lang: visual.split(".").pop(),
     visual,
   };
 });
@@ -60,14 +61,17 @@ for (const [i, beat] of beats.entries()) {
     await speak(beat, i);
     writeFileSync(stamp, said);
   }
-  const isDiagram = beat.lang === "mmd";
-  const file = isDiagram ? `${beat.id}.svg` : beat.visual;
-  if (isDiagram) {
-    execFileSync("mmdc", ["-q", "-i", `${SRC}/${beat.visual}`, "-o", `${OUT}/${file}`, "-t", "dark", "-b", "transparent"]);
-  } else {
-    copyFileSync(`${SRC}/${beat.visual}`, `${OUT}/${file}`);
+  if (/\.(diagram|chart)\.json$/.test(beat.visual)) {
+    const { nodes, data, edges = [], focus = [] } = JSON.parse(readFileSync(`${SRC}/${beat.visual}`, "utf8"));
+    const unknown = [...edges.flatMap(([from, to]) => [from, to]), ...focus].find((id) => id !== null && !(id in (nodes ?? data)));
+    if (unknown) throw new Error(`Beat ${beat.id}: "${unknown}" is not in its ${nodes ? "nodes" : "data"}`);
   }
-  manifest.push({ id: beat.id, title: beat.title, text: beat.text, kind: isDiagram ? "diagram" : "code", file, seconds: duration(`${OUT}/${beat.id}.mp3`) });
+  copyFileSync(`${SRC}/${beat.visual}`, `${OUT}/${beat.visual}`);
+  const seconds = duration(`${OUT}/${beat.id}.mp3`);
+  manifest.push({ id: beat.id, title: beat.title, text: beat.text, file: beat.visual, seconds, frames: Math.ceil((seconds + TAIL) * FPS) });
 }
 writeFileSync(`${OUT}/manifest.json`, JSON.stringify(manifest, null, 2));
+
+let frame = 0;
+for (const beat of manifest) console.log(`${beat.id}  frames ${frame}-${(frame += beat.frames) - 1}  ${beat.file}`);
 console.log(`${manifest.length} beats, ${manifest.reduce((s, b) => s + b.seconds, 0).toFixed(1)}s of narration`);
