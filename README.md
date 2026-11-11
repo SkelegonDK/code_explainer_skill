@@ -18,11 +18,12 @@ The skill is written for developers watching. It shows real code, explains *why*
 
 1. **Intake.** The agent asks three questions, one at a time: what you need to understand, how long the video should be (30 s to 30 min), and whether its outline is correct. It builds nothing until you approve the outline.
 2. **Research.** The agent traces the code to its definitions and keeps a `claim → path:line` log.
-3. **Beats.** The script is split into *beats*. Each beat is one visual (a code excerpt or a diagram) and one to three sentences of narration, sized to the time budget at about 150 words per minute.
-4. **Draft pass.** The agent builds the video with silent placeholder audio and renders stills to catch overflowing code, unreadable diagrams and highlights on the wrong line. This costs no credits.
-5. **Independent fact-check.** A fresh reviewer, which did not write the script, checks every claim against the code before any narration is generated. Where the agent supports subagents this is a separate agent. Otherwise the agent does a second pass, reopening each piece of cited code.
-6. **Voice and render.** The agent voices each beat, renders once with [Remotion](https://www.remotion.dev/) and the [Code Hike](https://codehike.org/) template, and checks that audio and video line up.
-7. **Long form.** For 15 to 30 minute onboarding videos, the agent plans chapters, builds them with parallel subagents, and joins them into one file. It also keeps the individual chapter files.
+3. **Script.** The agent writes the script as *beats*. Each beat is one visual (a code excerpt or a Mermaid diagram) and one to three sentences of narration, sized to the time budget at about 150 words per minute.
+4. **Length and diagram check.** The agent estimates the runtime from the word count, renders every Mermaid diagram on its own, and checks that each one renders, is readable, and keeps its layout from beat to beat.
+5. **Independent fact-check.** A fresh reviewer, which did not write the script, checks every claim, code excerpt and diagram against the code. Where the agent supports subagents this is a separate agent. Otherwise the agent does a second pass, reopening each piece of cited code. Nothing is built until the script passes.
+6. **Draft build.** Only now does the agent create the [Remotion](https://www.remotion.dev/) project from the [Code Hike](https://codehike.org/) template. It builds the video with silent placeholder audio and renders stills to catch overflowing code and highlights on the wrong line. This costs no credits.
+7. **Voice and render.** The agent voices each beat, renders once, and checks that audio and video line up.
+8. **Long form.** For 15 to 30 minute onboarding videos, the agent plans chapters, writes them with parallel subagents, fact-checks each one, builds them, and joins them into one file. It also keeps the individual chapter files.
 
 The full procedure is in [`skills/code-explainer-video/SKILL.md`](skills/code-explainer-video/SKILL.md).
 
@@ -64,7 +65,7 @@ Explain how jobs move through the queue in this repo, about 5 minutes.
 Make a 20-minute onboarding video for this codebase.
 ```
 
-The output is `explainer/out/explainer.mp4`, or `onboarding.mp4` plus one file per chapter for long-form videos. The agent never uploads or publishes the video unless you explicitly ask it to.
+Each video gets a title that names what it explains, proposed with the outline for you to approve, for example *How API sessions expire and renew*. The file is named after it (`how-api-sessions-expire-and-renew/out/how-api-sessions-expire-and-renew.mp4`), and the title is written into the MP4's metadata so video players show it. Long-form videos also get one titled file per chapter. The agent never uploads or publishes the video unless you explicitly ask it to.
 
 ## Getting the most out of ElevenLabs
 
