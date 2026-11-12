@@ -44,6 +44,8 @@ export const useFigure = (figure: Figure, prev: Figure | null, items: number, te
 
   return {
     appear,
+    // The frame the highlight first lands on `id` at or after frame `after`, if it does.
+    landed: (id: string, after: number) => cues.find((cue) => cue.at >= after && cue.ids.includes(id))?.at,
     heat: (id: string) => (before.ids.includes(id) ? 1 - moved : 0) + (now.ids.includes(id) ? moved : 0),
     tone: (t: number) => interpolateColors(t, [0, 1], [background, foreground]),
   };

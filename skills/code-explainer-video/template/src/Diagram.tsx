@@ -1,11 +1,17 @@
 import { Graph as Dagre, layout, Point } from "@dagrejs/dagre";
 import { useMemo } from "react";
+import { ERR } from "./annotations/Error";
 import { HOT } from "./annotations/Mark";
 import { Figure, STAGGER, useFigure } from "./figure";
 import { fontFamily, fontSize } from "./font";
 
 // beats/NN.diagram.json. `nodes` maps an id to its label; an edge is [from, to, label].
-export type Graph = Figure & { nodes: Record<string, string>; edges: [string, string, string?][] };
+// `errors` are edges drawn in red, from where an error is thrown to where it is caught.
+type Edge = [string, string, string?];
+export type Graph = Figure & { nodes: Record<string, string>; edges: Edge[]; errors?: Edge[] };
+
+// Every edge, the error edges last, each named by its index here.
+const lines = (graph: Graph) => [...graph.edges, ...(graph.errors ?? [])];
 
 const BOX = { width: 1728, height: 760 }; // the frame minus padding, title and captions
 const CHAR = 0.6; // width of a Roboto Mono character, in em
@@ -32,8 +38,7 @@ const place = (graph: Graph, rankdir: "LR" | "TB", disableOptimalOrderHeuristic:
   const g = new Dagre({ multigraph: true }).setGraph({ rankdir, nodesep: 48, ranksep: 72 }); // multigraph: edges between the same two nodes stay apart
   ids.forEach((id) => g.setNode(id, { width: graph.nodes[id].length * CHAR * fontSize + 64, height: 2.5 * fontSize }));
   // Edges go in by the order of their target in `nodes`, so dagre's first, depth-first ordering follows `nodes`.
-  // Each is named by its index in `edges`.
-  [...graph.edges.entries()].sort(([, a], [, b]) => ids.indexOf(a[1]) - ids.indexOf(b[1])).forEach(([i, [from, to, label = ""]]) =>
+  [...lines(graph).entries()].sort(([, a], [, b]) => ids.indexOf(a[1]) - ids.indexOf(b[1])).forEach(([i, [from, to, label = ""]]) =>
     g.setEdge(from, to, { width: label.length * CHAR * LABEL + 16, height: label ? 2 * LABEL : 0, labelpos: "c" }, `${i}`),
   );
   layout(g, { disableOptimalOrderHeuristic });
@@ -58,7 +63,16 @@ const curve = ([first, ...rest]: Point[]) =>
 
 export const Diagram: React.FC<{ graph: Graph; prev: Graph | null; text: string; seconds: number }> = ({ graph, prev, text, seconds }) => {
   const ids = Object.keys(graph.nodes);
-  const { appear, heat, tone } = useFigure(graph, prev, ids.length, text, seconds);
+  const { appear, heat, landed, tone } = useFigure(graph, prev, ids.length, text, seconds);
+
+  // An edge draws once both its ends are in. An error edge waits until the highlight lands on the node it leaves,
+  // after the error edge before it drew, so the failure shows when the narration reaches it.
+  let after = -Infinity;
+  const delays = lines(graph).map(([from, to], i) => {
+    const at = i < graph.edges.length ? undefined : landed(from, after);
+    after = at ?? after;
+    return at ?? (Math.max(ids.indexOf(from), ids.indexOf(to)) + 2) * STAGGER;
+  });
 
   // Left-to-right unless top-down fits the frame at a larger scale.
   const { g, width, height, scale } = useMemo(() => {
@@ -68,12 +82,13 @@ export const Diagram: React.FC<{ graph: Graph; prev: Graph | null; text: string;
 
   return (
     <svg width={width * scale} height={height * scale} viewBox={`0 0 ${width} ${height}`} style={{ margin: "auto", overflow: "visible", fontFamily }}>
-      {graph.edges.map(([from, to, label], i) => {
+      {lines(graph).map(([from, to, label], i) => {
         const { points, x, y, width: w } = g.edge({ v: from, w: to, name: `${i}` });
-        const drawn = appear((Math.max(ids.indexOf(from), ids.indexOf(to)) + 2) * STAGGER); // once both its ends are in
+        const drawn = appear(delays[i]);
         const [tail, tip] = points.slice(-2);
         const angle = (Math.atan2(tip.y - tail.y, tip.x - tail.x) * 180) / Math.PI;
-        const line = { fill: "none", stroke: tone(0.5), strokeWidth: 3, strokeLinecap: "round", strokeLinejoin: "round" } as const;
+        const red = i >= graph.edges.length;
+        const line = { fill: "none", stroke: red ? `rgb(${ERR})` : tone(0.5), strokeWidth: 3, strokeLinecap: "round", strokeLinejoin: "round" } as const;
         return (
           <g key={i}>
             <path d={curve(points)} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - drawn} {...line} />
@@ -81,7 +96,7 @@ export const Diagram: React.FC<{ graph: Graph; prev: Graph | null; text: string;
             {label && (
               <g opacity={drawn}>
                 <rect x={x - w / 2} y={y - 0.75 * LABEL} width={w} height={1.5 * LABEL} rx={8} fill={tone(0)} />
-                <text x={x} y={y} fontSize={LABEL} fill={tone(0.75)} textAnchor="middle" dominantBaseline="central">
+                <text x={x} y={y} fontSize={LABEL} fill={red ? `rgb(${ERR})` : tone(0.75)} textAnchor="middle" dominantBaseline="central">
                   {label}
                 </text>
               </g>

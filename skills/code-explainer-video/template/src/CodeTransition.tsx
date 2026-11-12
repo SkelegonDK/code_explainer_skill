@@ -7,6 +7,7 @@ import {
   getStartingSnapshot,
   TokenTransitionsSnapshot,
 } from "codehike/utils/token-transitions";
+import { error } from "./annotations/Error";
 import { mark } from "./annotations/Mark";
 import { applyStyle } from "./utils";
 
@@ -78,7 +79,7 @@ export function CodeTransition({
   });
 
   const handlers: AnnotationHandler[] = useMemo(() => {
-    return [tokenTransitions, mark];
+    return [tokenTransitions, mark, error];
   }, []);
 
   const style: React.CSSProperties = useMemo(() => {

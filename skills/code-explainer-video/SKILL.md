@@ -54,6 +54,7 @@ When running unattended (no one to answer), pick the most reasonable reading, st
 - Start the draft folder with `mkdir -p <name>-draft/beats && echo '*' > <name>-draft/.gitignore`; the `.gitignore` keeps it out of any enclosing repository.
 - Every claim in the narration must map to a file and line you read. Keep `<name>-draft/notes.md`, a log of `claim → path:line` while you research; you use it when fixing problems found in step 6.
 - Note what a developer would trip on: hidden side effects, ordering assumptions, error paths, config that changes behaviour, naming that lies.
+- For every error the video covers, record in `notes.md` the condition that triggers it, the line that throws, rejects or returns it (with its type and message), each function it passes through, and the line that catches it and what that does. If nothing catches it, record what happens instead, such as a crashed process or a 500 response.
 
 ## 3. Plan beats to the time budget
 
@@ -81,6 +82,7 @@ Beat rules:
 - Explain purpose, not lines. Each code beat says what the code is *for* and how it connects to the previous beat, then points at the one or two lines that matter. Never walk through a block line by line.
 - Code beats: at most 16 lines (the bottom of the frame is reserved for captions) and 80 characters per line. Cut irrelevant lines and replace them with a `// ...` comment. Consecutive beats that show the same snippet with a different highlight animate smoothly, so reuse snippets and move the highlight.
 - Highlight what the narration is talking about with a Code Hike comment directly above it: `// !mark` (next line) or `// !mark(1:4)` (next four lines). Use the language's comment syntax (`# !mark` in Python). A code highlight holds for the whole beat; to move it, start a new beat with the same snippet.
+- Errors: show when and where an error happens, not only that one can. In one beat, `!mark` the condition and put `// !error <Type>: <message>` directly above the line that throws (`// !error(1:2)` for two lines). That line turns red and the message appears under it, after the mark, so write the message the way the error would print, with the type and message the code produces. The narration states the condition in words. Then show where the error lands: a code beat that marks the `catch`, or a diagram with `errors`. If nothing catches it, say what happens instead. A rejected promise, an error return value (Go's `err`, a `Result`) and an error callback are errors too: put `!error` above the line that rejects or returns it.
 - Diagram beats: boxes and arrows, at most 8 nodes, labels of at most 24 characters. The layout is automatic. Give each sentence of the narration one node to talk about, or a few that belong together, in the order the arrows run, because the highlight moves from node to node as the sentences are spoken. A tree, such as a file tree or a call tree, is a diagram whose arrows all run from parent to child.
 - Chart beats: a bar chart to compare 2 to 8 values, or a line chart for 3 to 8 values that have an order, such as releases or input sizes. One series, names of at most 10 characters. Use only numbers you read in the repository or got by running a command. Never estimate a number.
 - Narration is written for the ear: short sentences, say identifiers the way devs say them ("the handle-request function"), no code read aloud symbol by symbol, no line numbers spoken. A sentence ends at `.`, `!` or `?` followed by a space, so avoid abbreviations such as "e.g." in narration: they split a sentence and shift `focus`.
@@ -110,6 +112,21 @@ export async function getSession(id: string) {
 }
 ```
 
+Example error beat (the condition is marked yellow, the throw red with its message under it):
+
+```
+beats/05.ts
+export async function getSession(id: string) {
+  const s = await store.get(id);
+  // !mark
+  if (s.expiresAt < Date.now()) {
+    // !error SessionExpired: session expired at 10:31
+    throw new SessionExpired(s.id, s.expiresAt);
+  }
+  return s;
+}
+```
+
 Example diagram beat:
 
 ```
@@ -127,6 +144,7 @@ beats/02.diagram.json
 
 - `nodes` maps an id to its label. The nodes appear on screen in the order listed. Children are also placed in that order (left to right when the arrows run down, top to bottom when they run right) whenever it needs no crossed edges and no edge through a box, which a tree always satisfies; otherwise the layout may reorder them.
 - An edge is `[from, to]` or `[from, to, label]`. Two edges between the same pair of nodes are both drawn. An edge from a node to itself is not allowed.
+- `errors` is optional: edges in the same format, drawn in red from where an error is thrown to where it is caught, labelled with the error's type (`["store", "mw", "SessionExpired"]`). Each one draws when the highlight first lands on the node it leaves, after the error edge before it has drawn, so put that node in `focus` for the sentence that says it fails. An error edge whose node is never in `focus` draws in with the other edges.
 
 Example chart beat:
 
@@ -158,15 +176,15 @@ In both diagrams and charts:
 ## 5. Check length and diagrams (no Remotion yet)
 
 1. **Length.** Estimate the runtime: narration words (`grep -hv '^# ' <name>-draft/beats/*.txt | wc -w`) ÷ 2.5, plus 0.6 s per beat. If it's more than 10% over or under the budget, cut or add beats now.
-2. **Code excerpts.** At most 16 lines and 80 characters per line, not counting `!mark` comments.
-3. **Diagrams and charts.** A diagram has at most 8 nodes and 24 characters per label, every id in `edges` and `focus` is a key of `nodes`, and no edge goes from a node to itself. A chart has 2 to 8 values, names of at most 10 characters and a `source`, and every name in `focus` is a key of `data`. `focus` has no more entries than the narration has sentences. A beat that continues a diagram or chart differs from the beat before only in `focus`; check with `diff`.
+2. **Code excerpts.** At most 16 lines and 80 characters per line, not counting `!mark` and `!error` comments. An `!error` message counts as one line.
+3. **Diagrams and charts.** A diagram has at most 8 nodes and 24 characters per label, every id in `edges`, `errors` and `focus` is a key of `nodes`, and no edge goes from a node to itself. A chart has 2 to 8 values, names of at most 10 characters and a `source`, and every name in `focus` is a key of `data`. `focus` has no more entries than the narration has sentences. A beat that continues a diagram or chart differs from the beat before only in `focus`; check with `diff`.
 
 ## 6. Independent fact-check (before any Remotion code or narration)
 
 The author of a script is the worst person to check it. Have a reviewer that did not write it check every claim and every diagram against the code. Do this even when running unattended.
 
 - **If your agent supports subagents**, start a fresh one. Give it the repository path, every file in `<name>-draft/beats/`, and this brief, but not `notes.md` or your outline, so that it forms its own reading of the code:
-  > Check this explainer script against the code. List every factual claim in the narration and in the on-screen titles. For each, find the code that confirms or contradicts it, tracing calls to their definitions. Return one row per claim: `beat | claim | correct / wrong / unverifiable | path:line | why`. For each diagram (`.diagram.json`, where `nodes` maps ids to labels and an edge is `[from, to, label]`), check that every node is a real module, function or component, that every edge is a real call or data flow in the direction drawn, and that no edge important to the narration is missing; report each problem as a row. For each chart (`.chart.json`), check every value and the unit against its `source`, opening the file or rerunning the command; a value you cannot check is `unverifiable`. Also flag code excerpts that differ from the source (other than `// ...` cuts and `!mark` comments), titles whose `path:line` range is wrong, anything important about this code that the script states misleadingly, and code beats whose narration walks through the lines without saying what the code is for.
+  > Check this explainer script against the code. List every factual claim in the narration and in the on-screen titles. For each, find the code that confirms or contradicts it, tracing calls to their definitions. Return one row per claim: `beat | claim | correct / wrong / unverifiable | path:line | why`. For each diagram (`.diagram.json`, where `nodes` maps ids to labels and an edge is `[from, to, label]`), check that every node is a real module, function or component, that every edge is a real call or data flow in the direction drawn, that every edge in `errors` is an error that really travels from the first node to the second, and that no edge important to the narration is missing; report each problem as a row. For each `// !error <message>` in a code excerpt, check that the line under it throws, rejects or returns that error, with that type and message, under the condition the narration states, and that the narration says correctly where it is caught. For each chart (`.chart.json`), check every value and the unit against its `source`, opening the file or rerunning the command; a value you cannot check is `unverifiable`. Also flag code excerpts that differ from the source (other than `// ...` cuts and `!mark` and `!error` comments), titles whose `path:line` range is wrong, anything important about this code that the script states misleadingly, and code beats whose narration walks through the lines without saying what the code is for.
 - **Otherwise**, do a second pass yourself: for each claim, node and edge, reopen the cited code and check it there, not against `notes.md`.
 
 Fix every `wrong` row, cut or soften every `unverifiable` one, and rewrite flagged line-by-line beats around their purpose. Rerun step 5 after the fixes, because they change the length too. Send only the changed beats back, to the same reviewer if it can be resumed, otherwise to a fresh one with the same brief. Repeat until a check returns no `wrong` or `unverifiable` row; fix any remaining wording notes without another round.
@@ -180,7 +198,7 @@ SKILL_DIR="<skill dir>" && npx create-video@latest --yes --code-hike <name> \
   && rm -rf <name>/.git && echo '*' >> <name>/.gitignore \
   && mv <name>-draft/* <name>/ && rm -r <name>-draft && cd <name> \
   && npx remotion add @remotion/media && npm i @dagrejs/dagre@3 && npm rm twoslash-cdn && rm public/code* \
-  && rm src/calculate-metadata/process-snippet.ts src/annotations/Callout.tsx src/annotations/Error.tsx src/ProgressBar.tsx src/ReloadOnCodeChange.tsx \
+  && rm src/calculate-metadata/process-snippet.ts src/annotations/Callout.tsx src/ProgressBar.tsx src/ReloadOnCodeChange.tsx \
   && cp -R "$SKILL_DIR/template/." .
 ```
 
@@ -191,20 +209,20 @@ Every later command runs in `<name>/`; start each with `cd <name> &&` if your sh
 - `scripts/build.mjs` turns `beats/` into `public/beats/` (audio, visuals, `manifest.json`), measures each beat's audio and prints each beat's frame range.
 - `src/Main.tsx` plays the beats in sequence: title, visual, audio, captions.
 - `src/Diagram.tsx` and `src/Chart.tsx` draw diagram and chart beats, and `src/figure.ts` times their animation.
-- `src/annotations/Mark.tsx` implements the `!mark` highlight. `src/Captions.tsx` times caption chunks across each beat's audio.
+- `src/annotations/Mark.tsx` implements the `!mark` highlight and `src/annotations/Error.tsx` the `!error` one; it replaces the scaffold's file of that name. `src/Captions.tsx` times caption chunks across each beat's audio.
 
 Code excerpts in `beats/` are not meant to compile, so do not run the project's `tsc` or `npm run lint`: they report errors there.
 
 ## 8. Draft build (no credits)
 
 1. `node scripts/build.mjs` with no `beats/*.mp3` and no key writes silent placeholder audio at the estimated length, prints each beat's frame range and ends with the video's length (`8 beats, 76.0s of video`). It stops with a one-line message naming the beat when a `.txt` or visual is missing, a beat has more than one visual, an id in `edges` or `focus` is unknown, `focus` has more entries than the narration has sentences, or an edge goes from a node to itself. Fix that beat and run it again.
-2. Render stills of the moments with the most on screen, and of the moment each highlight lands (about 1.5 s into a beat): `npx remotion still Main out/check.png --frame=<n> --scale=0.5`. Take `<n>` from the frame ranges the build printed; 45 frames are 1.5 s. The first still after setup sometimes fails with a delayRender timeout; run it once more. If stills and renders keep failing with "Waiting for root component to load", which happens on a busy machine, add `--browser-executable="<path to an installed Chrome>"` to every `remotion` command. Look at the stills. Fix overflowing lines, highlights on the wrong line, and captions covering code.
+2. Render stills of the moments with the most on screen, and of the moment each highlight lands (about 2 s into a beat, when an `!error` message has appeared too): `npx remotion still Main out/check.png --frame=<n> --scale=0.5`. Take `<n>` from the frame ranges the build printed; 60 frames are 2 s. The first still after setup sometimes fails with a delayRender timeout; run it once more. If stills and renders keep failing with "Waiting for root component to load", which happens on a busy machine, add `--browser-executable="<path to an installed Chrome>"` to every `remotion` command. Look at the stills. Fix overflowing lines, highlights or `!error` marks on the wrong line, and captions covering code.
 
 ## 9. Animate the diagrams and charts (no credits)
 
 Skip this step when the video has no diagram or chart beats.
 
-`src/Diagram.tsx` and `src/Chart.tsx` animate each beat from its JSON. The nodes of a diagram appear in the order listed, and each arrow draws once both its ends are on screen. The bars of a chart grow one after another, and a line draws from left to right. In both, the highlight moves to the next `focus` entry when the next sentence starts. A beat that continues the previous beat's diagram or chart does not build in again. The timing follows the audio, so it still holds after the placeholder audio is replaced in step 10.
+`src/Diagram.tsx` and `src/Chart.tsx` animate each beat from its JSON. The nodes of a diagram appear in the order listed, and each arrow draws once both its ends are on screen. The bars of a chart grow one after another, and a line draws from left to right. In both, the highlight moves to the next `focus` entry when the next sentence starts. An error edge draws when the highlight lands on the node it leaves. A beat that continues the previous beat's diagram or chart does not build in again. The timing follows the audio, so it still holds after the placeholder audio is replaced in step 10.
 
 A still cannot show motion, so check each run of diagram or chart beats on a contact sheet:
 
@@ -218,7 +236,7 @@ A still cannot show motion, so check each run of diagram or chart beats on a con
    npx remotion render Main out/build.mp4 --frames=<f>-<f+59> --scale=0.5
    ffmpeg -y -v error -i out/build.mp4 -vf "fps=10,scale=480:-1,tile=4x5" out/build-%d.png
    ```
-2. Read every sheet left to right, top to bottom. In each tile the highlighted node, bar or point must be the one the caption is talking about. On the build sheets the nodes must appear in an order that follows the arrows. A continued diagram or chart must not move or rebuild.
+2. Read every sheet left to right, top to bottom. In each tile the highlighted node, bar or point must be the one the caption is talking about. Each red error edge must draw in the tile where the caption says the error happens. On the build sheets the nodes must appear in an order that follows the arrows. A continued diagram or chart must not move or rebuild.
 3. Render a still of the last frame of each of these beats. Every label and value must be easy to read, and nothing may overlap or touch the captions.
 4. Fix problems in the JSON, then rebuild and check again. Reorder `nodes` to change the order of appearance, and the order of children where the layout allows it (step 4). Realign `focus` with the sentences. Split a beat whose narration covers more than three nodes or values. Shorten labels, or drop a node or a value, when the text is small or crowded. A diagram whose nodes, edges or labels changed, and a chart whose values changed, goes back through step 6.
 

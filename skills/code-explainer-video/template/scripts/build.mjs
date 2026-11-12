@@ -36,7 +36,8 @@ const beats = ids.map((id) => {
   // One space between words, so captions and highlights are timed from the same text.
   const text = (hasTitle ? rest : [first, ...rest]).join(" ").replace(/\s+/g, " ").trim();
   if (/\.(diagram|chart)\.json$/.test(visual)) {
-    const { nodes, data, edges = [], focus = [] } = JSON.parse(readFileSync(`${SRC}/${visual}`, "utf8"));
+    const { nodes, data, edges: calls = [], errors = [], focus = [] } = JSON.parse(readFileSync(`${SRC}/${visual}`, "utf8"));
+    const edges = [...calls, ...errors];
     const unknown = [...edges.flatMap(([from, to]) => [from, to]), ...focus.flat()].find((key) => key !== null && !(key in (nodes ?? data)));
     if (unknown) fail(id, `"${unknown}" is not in its ${nodes ? "nodes" : "data"}`);
     const loop = edges.find(([from, to]) => from === to);
