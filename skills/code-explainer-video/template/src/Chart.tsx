@@ -1,6 +1,6 @@
 import { HOT } from "./annotations/Mark";
 import { Figure, STAGGER, useFigure } from "./figure";
-import { fontFamily, fontSize } from "./font";
+import { CHAR, fontFamily, fontSize } from "./font";
 
 // beats/NN.chart.json. One series, measured from zero. `unit` is appended to each value as written.
 // The file also names its `source`, which is for the fact-checker and is not drawn.
@@ -10,7 +10,6 @@ const WIDTH = 1500; // the widest the plot gets
 const HEIGHT = 520; // of the plot: values sit above it and names below
 const SLOT = 300; // the widest one bar's or point's share of the width gets
 const LOW = 6; // the least height of a bar, so a bar of 0 can still be highlighted
-const CHAR = 0.6; // width of a Roboto Mono character, in em
 
 export const Chart: React.FC<{ chart: Chart; prev: Chart | null; text: string; seconds: number }> = ({ chart, prev, text, seconds }) => {
   const names = Object.keys(chart.data);

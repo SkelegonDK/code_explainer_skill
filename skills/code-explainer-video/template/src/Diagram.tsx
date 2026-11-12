@@ -1,9 +1,8 @@
 import { Graph as Dagre, layout, Point } from "@dagrejs/dagre";
 import { useMemo } from "react";
-import { ERR } from "./annotations/Error";
-import { HOT } from "./annotations/Mark";
+import { ERR, HOT } from "./annotations/Mark";
 import { Figure, STAGGER, useFigure } from "./figure";
-import { fontFamily, fontSize } from "./font";
+import { BOX, CHAR, fontFamily, fontSize } from "./font";
 
 // beats/NN.diagram.json. `nodes` maps an id to its label; an edge is [from, to, label].
 // `errors` are edges drawn in red, from where an error is thrown to where it is caught.
@@ -13,8 +12,6 @@ export type Graph = Figure & { nodes: Record<string, string>; edges: Edge[]; err
 // Every edge, the error edges last, each named by its index here.
 const lines = (graph: Graph) => [...graph.edges, ...(graph.errors ?? [])];
 
-const BOX = { width: 1728, height: 760 }; // the frame minus padding, title and captions
-const CHAR = 0.6; // width of a Roboto Mono character, in em
 const LABEL = 24; // edge label font size
 
 // Two lines cross when the ends of each lie on opposite sides of the other.

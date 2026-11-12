@@ -1,4 +1,4 @@
-import { AnnotationHandler, HighlightedCode, Pre } from "codehike/code";
+import { AnnotationHandler, CodeAnnotation, HighlightedCode, Pre } from "codehike/code";
 import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Easing, interpolate, useCurrentFrame, useDelayRender } from "remotion";
 
@@ -7,23 +7,39 @@ import {
   getStartingSnapshot,
   TokenTransitionsSnapshot,
 } from "codehike/utils/token-transitions";
-import { error } from "./annotations/Error";
-import { mark } from "./annotations/Mark";
+import { line, lit, mark, Marks, PAD, rows } from "./annotations/Mark";
+import { sentences, useCue } from "./figure";
+import type { Step } from "./Main";
 import { applyStyle } from "./utils";
 
 import { tokenTransitions } from "./annotations/InlineToken";
-import { fontFamily, fontSize, tabSize } from "./font";
+import { BOX, CHAR, fontFamily, tabSize } from "./font";
+
+const MAX = 80; // px, the largest the code gets
+
+// The largest font at which the code fits the box: its longest row across, with a character to spare so that
+// no label wraps, and every row down. At the limits of an excerpt, 16 rows of 80 characters, it is 32 px.
+const fit = (code: HighlightedCode) => {
+  const all = rows(code).map((row) => row.replace(/\t/g, " ".repeat(tabSize)));
+  const widest = Math.max(...all.map((row) => row.length)) + 1;
+  return Math.min(MAX, (BOX.width - 2 * PAD) / (CHAR * widest), BOX.height / (1.5 * all.length));
+};
 
 export function CodeTransition({
-  oldCode,
+  prev,
   newCode,
+  text,
+  seconds,
   durationInFrames = 30,
 }: {
-  readonly oldCode: HighlightedCode | null;
+  readonly prev?: Step;
   readonly newCode: HighlightedCode;
+  readonly text: string;
+  readonly seconds: number;
   readonly durationInFrames?: number;
 }) {
   const frame = useCurrentFrame();
+  const oldCode = prev?.code ?? null;
 
   const ref = React.useRef<HTMLPreElement>(null);
   const [oldSnapshot, setOldSnapshot] =
@@ -79,18 +95,28 @@ export function CodeTransition({
   });
 
   const handlers: AnnotationHandler[] = useMemo(() => {
-    return [tokenTransitions, mark, error];
+    return [tokenTransitions, line, mark];
   }, []);
 
-  const style: React.CSSProperties = useMemo(() => {
-    return {
-      position: "relative",
-      fontSize,
-      lineHeight: 1.5,
-      fontFamily,
-      tabSize,
-    };
-  }, []);
+  // The marks move after the code has. When the previous beat showed the same rows, nothing moves, and the marks
+  // move at once from the ones that beat ended on: they are lit during sentence 0, the start of this beat.
+  const still = oldCode && String(rows(oldCode)) === String(rows(newCode));
+  const ended = still ? oldCode.annotations.filter((a) => lit(a, sentences(prev?.text ?? "").length - 1)) : null;
+  const cue = useCue(text, seconds, ended ? 0 : durationInFrames);
+  const marks = {
+    all: [...(ended ?? []).map((a) => ({ ...a, query: "0" })), ...code.annotations],
+    heat: (a: CodeAnnotation) => cue.heat((k) => lit(a, k)),
+  };
 
-  return <Pre ref={ref} code={code} handlers={handlers} style={style} />;
+  // The font grows or shrinks from the previous code's size while the code moves.
+  // The auto margin centres the code in the frame, as wide as its longest row, like a diagram.
+  const from = fit(oldCode ?? newCode);
+  const fontSize = interpolate(frame, [0, durationInFrames], [from, oldSnapshot ? fit(newCode) : from], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const style: React.CSSProperties = { position: "relative", margin: "auto", fontSize, lineHeight: 1.5, fontFamily, tabSize };
+
+  return (
+    <Marks.Provider value={marks}>
+      <Pre ref={ref} code={code} handlers={handlers} style={style} />
+    </Marks.Provider>
+  );
 }

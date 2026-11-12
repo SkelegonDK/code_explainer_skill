@@ -15,7 +15,7 @@ export const calculateMetadata: CalculateMetadataFunction<Props & z.infer<typeof
         ...beat,
         graph: kind === "diagram" ? JSON.parse(source) : null,
         chart: kind === "chart" ? JSON.parse(source) : null,
-        code: kind ? null : await highlight({ value: source, lang: beat.file.split(".").pop()!, meta: "" }, props.theme),
+        code: kind ? null : await highlight({ value: source.trimEnd(), lang: beat.file.split(".").pop()!, meta: "" }, props.theme),
       };
     }),
   );

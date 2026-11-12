@@ -7,7 +7,7 @@ description: "Make a narrated developer explainer video (Remotion + ElevenLabs) 
 
 Narrated, animated walkthroughs of code for developers. The viewer is an engineer: show real code, name real files and functions, explain *why* and *how*, never simplify into analogies for non-developers. How much the viewer already knows about the subject is asked in intake and sets what the script assumes.
 
-Stack: Remotion's Code Hike template (syntax-highlighted code that morphs between steps), diagrams and charts drawn and animated in Remotion (diagrams are laid out by dagre), ElevenLabs for narration (the ElevenLabs connector, or the API with a key), and burnt-in captions. Load the `remotion-best-practices` skill when you change the Remotion code in `template/`.
+Stack: Remotion's Code Hike template (code in the Monokai theme that morphs between steps), diagrams and charts drawn and animated in Remotion (diagrams are laid out by dagre), ElevenLabs for narration (the ElevenLabs connector, or the API with a key), and burnt-in captions. Load the `remotion-best-practices` skill when you change the Remotion code in `template/`.
 
 Files next to this SKILL.md ("the skill directory"):
 - `template/`: the Remotion source files copied into every video project.
@@ -80,12 +80,14 @@ Beat rules:
 - Open with the question being answered and close with a one-line recap. No intro fluff, no "in this video".
 - Architecture first, then zoom in: diagram, then the entry-point code, then the interesting line.
 - Explain purpose, not lines. Each code beat says what the code is *for* and how it connects to the previous beat, then points at the one or two lines that matter. Never walk through a block line by line.
-- Code beats: at most 16 lines (the bottom of the frame is reserved for captions) and 80 characters per line. Cut irrelevant lines and replace them with a `// ...` comment. Consecutive beats that show the same snippet with a different highlight animate smoothly, so reuse snippets and move the highlight.
-- Highlight what the narration is talking about with a Code Hike comment directly above it: `// !mark` (next line) or `// !mark(1:4)` (next four lines). Use the language's comment syntax (`# !mark` in Python). A code highlight holds for the whole beat; to move it, start a new beat with the same snippet.
-- Errors: show when and where an error happens, not only that one can. In one beat, `!mark` the condition and put `// !error <Type>: <message>` directly above the line that throws (`// !error(1:2)` for two lines). That line turns red and the message appears under it, after the mark, so write the message the way the error would print, with the type and message the code produces. The narration states the condition in words. Then show where the error lands: a code beat that marks the `catch`, or a diagram with `errors`. If nothing catches it, say what happens instead. A rejected promise, an error return value (Go's `err`, a `Result`) and an error callback are errors too: put `!error` above the line that rejects or returns it.
+- Code beats: at most 16 lines (the bottom of the frame is reserved for captions) and 80 characters per line. Cut irrelevant lines and replace them with a `// ...` comment. The code is centred and sized to fill the frame: an excerpt at those limits is set at about 32 px, and a shorter and narrower one grows, up to 80 px, so every line you cut and every long line you shorten makes the rest easier to read. A beat that repeats the previous beat's snippet keeps the code still and moves only the marks.
+- Mark what the narration is talking about with a Code Hike comment directly above it, in the language's comment syntax (`# !mark` in Python): `// !mark` (next line), `// !mark(1:4)` (next four lines), or `// !mark[/expiresAt/]` (the part of the next line that matches the regex), which boxes one name or expression when the point is not the whole line. While a mark is lit, the lines without one are dimmed.
+- Time each mark to the sentence that talks about it by putting the sentence's number after it: `// !mark 2` is lit during the second sentence of the beat's narration, `// !mark(1:3) 2-3` during the second and third, and a mark with no number during the whole beat. Leave the first sentence unmarked when it says what the code is for, so the viewer sees the whole excerpt first, and move the mark as the following sentences point at lines. Marks may overlap.
+- A mark can carry a label, written after the number: `// !mark 2 runs on every request`. It shows under the mark's last line while the mark is lit. Use one for what the code cannot show and the narration cannot hold on screen: a concrete value (`s.expiresAt = 10:31, now = 10:45`), a result (`returns null`), or a name for what the lines do. At most two per beat. A label is indented like its line and must fit in 80 characters with that indentation. It is a claim, so it is fact-checked like the narration. A label whose first word is a number needs a sentence range before it (`// !mark 1-3 3 retries at most`).
+- Errors: show when and where an error happens, not only that one can. In one beat, `!mark` the condition and put `// !error <Type>: <message>` directly above the line that throws (`// !error(1:2)` for two lines). `!error` is a red mark whose label is the message, so write the message the way the error would print, with the type and message the code produces, and number both: the mark with the sentence that states the condition, the error with the sentence that says it fails (`// !error 3 SessionExpired: session expired at 10:31`). The narration states the condition in words. Then show where the error lands: a code beat that marks the `catch`, or a diagram with `errors`. If nothing catches it, say what happens instead. A rejected promise, an error return value (Go's `err`, a `Result`) and an error callback are errors too: put `!error` above the line that rejects or returns it.
 - Diagram beats: boxes and arrows, at most 8 nodes, labels of at most 24 characters. The layout is automatic. Give each sentence of the narration one node to talk about, or a few that belong together, in the order the arrows run, because the highlight moves from node to node as the sentences are spoken. A tree, such as a file tree or a call tree, is a diagram whose arrows all run from parent to child.
 - Chart beats: a bar chart to compare 2 to 8 values, or a line chart for 3 to 8 values that have an order, such as releases or input sizes. One series, names of at most 10 characters. Use only numbers you read in the repository or got by running a command. Never estimate a number.
-- Narration is written for the ear: short sentences, say identifiers the way devs say them ("the handle-request function"), no code read aloud symbol by symbol, no line numbers spoken. A sentence ends at `.`, `!` or `?` followed by a space, so avoid abbreviations such as "e.g." in narration: they split a sentence and shift `focus`.
+- Narration is written for the ear: short sentences, say identifiers the way devs say them ("the handle-request function"), no code read aloud symbol by symbol, no line numbers spoken. A sentence ends at `.`, `!` or `?` followed by a space, so avoid abbreviations such as "e.g." in narration: they split a sentence and shift `focus` and the numbered marks.
 
 ## 4. Write the beats
 
@@ -104,7 +106,8 @@ Sessions are renewed lazily. The expiry check only runs when a request arrives, 
 beats/04.ts
 export async function getSession(id: string) {
   const s = await store.get(id);
-  // !mark(1:3)
+  // !mark(1:3) 2
+  // !mark[/Date.now\(\)/] 2
   if (s && s.expiresAt < Date.now()) {
     return renew(s);
   }
@@ -112,15 +115,21 @@ export async function getSession(id: string) {
 }
 ```
 
-Example error beat (the condition is marked yellow, the throw red with its message under it):
+The whole excerpt shows during the first sentence. During the second, the `if` block is marked, `Date.now()` is boxed and the other lines are dimmed.
+
+Example error beat (the condition is marked yellow during the second sentence, the throw red with its message under it during the third):
 
 ```
+beats/05.txt
+# src/auth/session.ts:31-44
+A session that is past its expiry is not renewed here. The check compares the stored expiry with the clock. When it is past, get-session throws session-expired.
+
 beats/05.ts
 export async function getSession(id: string) {
   const s = await store.get(id);
-  // !mark
+  // !mark 2
   if (s.expiresAt < Date.now()) {
-    // !error SessionExpired: session expired at 10:31
+    // !error 3 SessionExpired: session expired at 10:31
     throw new SessionExpired(s.id, s.expiresAt);
   }
   return s;
@@ -176,7 +185,7 @@ In both diagrams and charts:
 ## 5. Check length and diagrams (no Remotion yet)
 
 1. **Length.** Estimate the runtime: narration words (`grep -hv '^# ' <name>-draft/beats/*.txt | wc -w`) ÷ 2.5, plus 0.6 s per beat. If it's more than 10% over or under the budget, cut or add beats now.
-2. **Code excerpts.** At most 16 lines and 80 characters per line, not counting `!mark` and `!error` comments. An `!error` message counts as one line.
+2. **Code excerpts.** At most 16 lines and 80 characters per line, not counting `!mark` and `!error` comments. A label or `!error` message counts as one line: its row is kept free under the mark for the whole beat. No mark is numbered past the last sentence of its beat.
 3. **Diagrams and charts.** A diagram has at most 8 nodes and 24 characters per label, every id in `edges`, `errors` and `focus` is a key of `nodes`, and no edge goes from a node to itself. A chart has 2 to 8 values, names of at most 10 characters and a `source`, and every name in `focus` is a key of `data`. `focus` has no more entries than the narration has sentences. A beat that continues a diagram or chart differs from the beat before only in `focus`; check with `diff`.
 
 ## 6. Independent fact-check (before any Remotion code or narration)
@@ -184,7 +193,7 @@ In both diagrams and charts:
 The author of a script is the worst person to check it. Have a reviewer that did not write it check every claim and every diagram against the code. Do this even when running unattended.
 
 - **If your agent supports subagents**, start a fresh one. Give it the repository path, every file in `<name>-draft/beats/`, and this brief, but not `notes.md` or your outline, so that it forms its own reading of the code:
-  > Check this explainer script against the code. List every factual claim in the narration and in the on-screen titles. For each, find the code that confirms or contradicts it, tracing calls to their definitions. Return one row per claim: `beat | claim | correct / wrong / unverifiable | path:line | why`. For each diagram (`.diagram.json`, where `nodes` maps ids to labels and an edge is `[from, to, label]`), check that every node is a real module, function or component, that every edge is a real call or data flow in the direction drawn, that every edge in `errors` is an error that really travels from the first node to the second, and that no edge important to the narration is missing; report each problem as a row. For each `// !error <message>` in a code excerpt, check that the line under it throws, rejects or returns that error, with that type and message, under the condition the narration states, and that the narration says correctly where it is caught. For each chart (`.chart.json`), check every value and the unit against its `source`, opening the file or rerunning the command; a value you cannot check is `unverifiable`. Also flag code excerpts that differ from the source (other than `// ...` cuts and `!mark` and `!error` comments), titles whose `path:line` range is wrong, anything important about this code that the script states misleadingly, and code beats whose narration walks through the lines without saying what the code is for.
+  > Check this explainer script against the code. List every factual claim in the narration, in the on-screen titles and in the labels of marks (the text after `// !mark`, and after its sentence number if it has one). For each, find the code that confirms or contradicts it, tracing calls to their definitions. Return one row per claim: `beat | claim | correct / wrong / unverifiable | path:line | why`. For each diagram (`.diagram.json`, where `nodes` maps ids to labels and an edge is `[from, to, label]`), check that every node is a real module, function or component, that every edge is a real call or data flow in the direction drawn, that every edge in `errors` is an error that really travels from the first node to the second, and that no edge important to the narration is missing; report each problem as a row. For each `// !error <message>` in a code excerpt (a number or range before the message is the sentence it shows during, not part of it), check that the line under it throws, rejects or returns that error, with that type and message, under the condition the narration states, and that the narration says correctly where it is caught. For each chart (`.chart.json`), check every value and the unit against its `source`, opening the file or rerunning the command; a value you cannot check is `unverifiable`. Also flag code excerpts that differ from the source (other than `// ...` cuts and `!mark` and `!error` comments), titles whose `path:line` range is wrong, anything important about this code that the script states misleadingly, and code beats whose narration walks through the lines without saying what the code is for.
 - **Otherwise**, do a second pass yourself: for each claim, node and edge, reopen the cited code and check it there, not against `notes.md`.
 
 Fix every `wrong` row, cut or soften every `unverifiable` one, and rewrite flagged line-by-line beats around their purpose. Rerun step 5 after the fixes, because they change the length too. Send only the changed beats back, to the same reviewer if it can be resumed, otherwise to a fresh one with the same brief. Repeat until a check returns no `wrong` or `unverifiable` row; fix any remaining wording notes without another round.
@@ -198,7 +207,7 @@ SKILL_DIR="<skill dir>" && npx create-video@latest --yes --code-hike <name> \
   && rm -rf <name>/.git && echo '*' >> <name>/.gitignore \
   && mv <name>-draft/* <name>/ && rm -r <name>-draft && cd <name> \
   && npx remotion add @remotion/media && npm i @dagrejs/dagre@3 && npm rm twoslash-cdn && rm public/code* \
-  && rm src/calculate-metadata/process-snippet.ts src/annotations/Callout.tsx src/ProgressBar.tsx src/ReloadOnCodeChange.tsx \
+  && rm src/calculate-metadata/process-snippet.ts src/annotations/Callout.tsx src/annotations/Error.tsx src/ProgressBar.tsx src/ReloadOnCodeChange.tsx \
   && cp -R "$SKILL_DIR/template/." .
 ```
 
@@ -209,14 +218,15 @@ Every later command runs in `<name>/`; start each with `cd <name> &&` if your sh
 - `scripts/build.mjs` turns `beats/` into `public/beats/` (audio, visuals, `manifest.json`), measures each beat's audio and prints each beat's frame range.
 - `src/Main.tsx` plays the beats in sequence: title, visual, audio, captions.
 - `src/Diagram.tsx` and `src/Chart.tsx` draw diagram and chart beats, and `src/figure.ts` times their animation.
-- `src/annotations/Mark.tsx` implements the `!mark` highlight and `src/annotations/Error.tsx` the `!error` one; it replaces the scaffold's file of that name. `src/Captions.tsx` times caption chunks across each beat's audio.
+- `src/annotations/Mark.tsx` implements `!mark` and `!error`, and `src/CodeTransition.tsx` times them to the sentences, and centres the code and sizes it to the frame, from its rows and its longest row. `src/Captions.tsx` times caption chunks across each beat's audio.
+- `src/Root.tsx` sets the colour theme, `monokai`. Change it there only if the user asks for another; `src/calculate-metadata/theme.tsx` lists the choices.
 
 Code excerpts in `beats/` are not meant to compile, so do not run the project's `tsc` or `npm run lint`: they report errors there.
 
 ## 8. Draft build (no credits)
 
-1. `node scripts/build.mjs` with no `beats/*.mp3` and no key writes silent placeholder audio at the estimated length, prints each beat's frame range and ends with the video's length (`8 beats, 76.0s of video`). It stops with a one-line message naming the beat when a `.txt` or visual is missing, a beat has more than one visual, an id in `edges` or `focus` is unknown, `focus` has more entries than the narration has sentences, or an edge goes from a node to itself. Fix that beat and run it again.
-2. Render stills of the moments with the most on screen, and of the moment each highlight lands (about 2 s into a beat, when an `!error` message has appeared too): `npx remotion still Main out/check.png --frame=<n> --scale=0.5`. Take `<n>` from the frame ranges the build printed; 60 frames are 2 s. The first still after setup sometimes fails with a delayRender timeout; run it once more. If stills and renders keep failing with "Waiting for root component to load", which happens on a busy machine, add `--browser-executable="<path to an installed Chrome>"` to every `remotion` command. Look at the stills. Fix overflowing lines, highlights or `!error` marks on the wrong line, and captions covering code.
+1. `node scripts/build.mjs` with no `beats/*.mp3` and no key writes silent placeholder audio at the estimated length, prints each beat's frame range and ends with the video's length (`8 beats, 76.0s of video`). It stops with a one-line message naming the beat when a `.txt` or visual is missing, a beat has more than one visual, an id in `edges` or `focus` is unknown, `focus` has more entries than the narration has sentences, a mark is numbered with a sentence the narration does not have, or an edge goes from a node to itself. Fix that beat and run it again.
+2. Render stills of the moments with the most on screen, and of each code beat while its marks are lit: `npx remotion still Main out/check.png --frame=<n> --scale=0.5`. Take `<n>` from the frame ranges the build printed; 60 frames are 2 s. A mark with no number is lit from 1.5 s into its beat. A numbered mark is lit while its sentence is spoken, so check a beat that has them on a contact sheet (step 9, item 1): in each tile the lit mark and its label must be what the caption is talking about. A still from the first half second of a code beat shows no code; that is the still, not the video. The first still after setup sometimes fails with a delayRender timeout; run it once more. If stills and renders keep failing with "Waiting for root component to load", which happens on a busy machine, add `--browser-executable="<path to an installed Chrome>"` to every `remotion` command. Look at the stills. Code that looks small has one long line or label holding the size down: shorten it. Fix overflowing lines and labels, marks or `!error` marks on the wrong line or lit during the wrong sentence, and captions covering code.
 
 ## 9. Animate the diagrams and charts (no credits)
 

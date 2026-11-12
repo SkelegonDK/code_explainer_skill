@@ -35,15 +35,21 @@ const beats = ids.map((id) => {
   const hasTitle = first.startsWith("# ");
   // One space between words, so captions and highlights are timed from the same text.
   const text = (hasTitle ? rest : [first, ...rest]).join(" ").replace(/\s+/g, " ").trim();
+  const said = text.split(/(?<=[.!?])\s+/).length; // sentences, as in src/figure.ts
+  const source = readFileSync(`${SRC}/${visual}`, "utf8");
   if (/\.(diagram|chart)\.json$/.test(visual)) {
-    const { nodes, data, edges: calls = [], errors = [], focus = [] } = JSON.parse(readFileSync(`${SRC}/${visual}`, "utf8"));
+    const { nodes, data, edges: calls = [], errors = [], focus = [] } = JSON.parse(source);
     const edges = [...calls, ...errors];
     const unknown = [...edges.flatMap(([from, to]) => [from, to]), ...focus.flat()].find((key) => key !== null && !(key in (nodes ?? data)));
     if (unknown) fail(id, `"${unknown}" is not in its ${nodes ? "nodes" : "data"}`);
     const loop = edges.find(([from, to]) => from === to);
     if (loop) fail(id, `"${loop[0]}" has an edge to itself`);
-    const said = text.split(/(?<=[.!?])\s+/).length; // sentences, as in src/figure.ts
     if (focus.length > said) fail(id, `focus has ${focus.length} entries but the narration has ${said} sentences`);
+  } else {
+    // The sentences a mark is lit during, as in src/annotations/Mark.tsx: `!mark(1:2) 3` or `!error 2-3 Type: message`.
+    const marks = source.matchAll(/!(?:mark|error)(?:\([^)]*\)|\[[^\]]*\])?[ \t]+(\d+)(?:-(\d+))?(?=\s|$)/g);
+    const [off] = [...marks].find(([, from, to = from]) => from < 1 || to > said || to - from < 0) ?? [];
+    if (off) fail(id, `"${off}" is not within sentences 1 to ${said} of the narration`);
   }
 
   // Where the audio comes from. Without a key, audio voiced through the API is kept as long as its narration holds.

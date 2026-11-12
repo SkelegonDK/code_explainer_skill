@@ -2,7 +2,7 @@
 
 An agent skill that turns a piece of code into a narrated, animated explainer video. It works on any scope: one line, a function, a file, or a whole architecture. It also explains language and library concepts with no codebase, using small examples it writes and runs.
 
-You ask your coding agent something like *"make a 2-minute video explaining how a request gets authenticated in this repo"*. The agent reads the code, writes a script, checks the outline with you, and renders an MP4. The video has syntax-highlighted code that morphs between steps, animated diagrams and charts, a voiceover, and burnt-in captions.
+You ask your coding agent something like *"make a 2-minute video explaining how a request gets authenticated in this repo"*. The agent reads the code, writes a script, checks the outline with you, and renders an MP4. The video has syntax-highlighted code (Monokai) that morphs between steps and is centred and sized to fill the frame, with a highlight that follows the narration from line to line, animated diagrams and charts, a voiceover, and burnt-in captions.
 
 ## Why
 
@@ -21,7 +21,7 @@ The skill is written for developers watching. It shows real code, explains *why*
 3. **Script.** The agent writes the script as *beats*. Each beat is one visual (a code excerpt, a diagram or a chart) and one to three sentences of narration, sized to the time budget at about 150 words per minute.
 4. **Length and diagram check.** The agent estimates the runtime from the word count and checks every diagram and chart against the size limits.
 5. **Independent fact-check.** A fresh reviewer, which did not write the script, checks every claim, code excerpt, diagram and chart value against the code. Where the agent supports subagents this is a separate agent. Otherwise the agent does a second pass, reopening each piece of cited code. Nothing is built until the script passes.
-6. **Draft build.** Only now does the agent create the [Remotion](https://www.remotion.dev/) project from the [Code Hike](https://codehike.org/) template. It builds the video with silent placeholder audio and renders stills to catch overflowing code and highlights on the wrong line. Where the code can fail, the line that throws is marked red with the error it prints, under the condition that triggers it. This costs no credits.
+6. **Draft build.** Only now does the agent create the [Remotion](https://www.remotion.dev/) project from the [Code Hike](https://codehike.org/) template. It builds the video with silent placeholder audio and renders stills to catch overflowing code and highlights on the wrong line. Each highlight is lit while its sentence is spoken, on whole lines or on one expression, and the other lines dim. A highlight can carry a short label, such as a concrete value. Where the code can fail, the line that throws is marked red with the error it prints, under the condition that triggers it. This costs no credits.
 7. **Diagram and chart animation.** Diagrams (flows and trees) and charts (bar and line) are drawn in Remotion, not imported as images. Boxes appear one by one, arrows and lines draw themselves, bars grow, and a highlight moves from item to item as the narration reaches each one. Red error edges show where an error travels, and draw only when the narration reaches the failure. The agent checks the motion on contact sheets.
 8. **Voice and render.** The agent voices each beat, renders once, and checks that audio and video line up.
 9. **Long form.** For 15 to 30 minute onboarding videos, the agent plans chapters, writes them with parallel subagents, fact-checks each one, builds them, and joins them into one file. It also keeps the individual chapter files.
@@ -101,7 +101,7 @@ skills/code-explainer-video/
   SKILL.md                 the workflow: intake, research, beats, fact-check, draft, animation, voice, render
   template/                Remotion source files copied over the official Code Hike template
     scripts/build.mjs      beats/ → audio, visuals and a manifest
-    src/                   composition, diagrams, charts, captions, highlight annotation
+    src/                   composition, diagrams, charts, captions, code marks
   references/
     voice.md               ElevenLabs connector, API key, other providers, silent fallback
     long-form.md           15-30 minute videos built as parallel chapters
