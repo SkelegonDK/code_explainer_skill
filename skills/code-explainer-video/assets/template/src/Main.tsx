@@ -12,14 +12,16 @@ import { shape } from "./figure";
 import { Cues, Music, SoundsOn } from "./Sounds";
 
 export type Step = Beat & { code: HighlightedCode | null; graph: Graph | null; chart: Chart | null };
-export type Props = { steps: Step[] | null; themeColors: ThemeColors | null; music: boolean; sounds: boolean };
+export type Props = { steps: Step[] | null; themeColors: ThemeColors | null; commit: string; music: boolean; sounds: boolean };
 
 // A beat brings in a new visual, with a whoosh, when it is not code after code or the same diagram or chart.
 const fresh = (step: Step, prev?: Step) => !!prev && (step.code ? !prev.code : shape(step.graph ?? step.chart) !== shape(prev.graph ?? prev.chart));
 
 const titleStyle: React.CSSProperties = { fontFamily, fontSize: 28, opacity: 0.6, height: 40 };
+// The commit sits in the strip under the captions, so a paused frame says which version of the code it shows.
+const commitStyle: React.CSSProperties = { fontFamily, fontSize: 20, opacity: 0.4, position: "absolute", bottom: 8 };
 
-export const Main: React.FC<Props> = ({ steps, themeColors, music, sounds }) => {
+export const Main: React.FC<Props> = ({ steps, themeColors, commit, music, sounds }) => {
   const { pad } = useBox();
   if (!steps || !themeColors) throw new Error("Run calculateMetadata first");
   // The bottom padding keeps the captions clear, so a visual is centred in the room above them.
@@ -42,6 +44,7 @@ export const Main: React.FC<Props> = ({ steps, themeColors, music, sounds }) => 
               </Series.Sequence>
             ))}
           </Series>
+          {commit && <div style={{ ...commitStyle, right: pad }}>{commit}</div>}
         </AbsoluteFill>
       </SoundsOn.Provider>
     </ThemeProvider>

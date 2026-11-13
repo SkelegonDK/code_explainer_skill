@@ -22,6 +22,6 @@ export const calculateMetadata: CalculateMetadataFunction<Props & z.infer<typeof
   return {
     ...frames[props.format],
     durationInFrames: steps.reduce((sum, s) => sum + s.frames, 0),
-    props: { ...props, steps, themeColors: await getColors(props.theme) },
+    props: { ...props, steps, themeColors: await getColors(props.theme), commit: await getText("commit.txt") },
   };
 };

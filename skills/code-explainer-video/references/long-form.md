@@ -6,6 +6,7 @@ Work in a folder `<name>/`, in the current directory unless the user names a pla
    - the chapter list: 3-5 min each, ordered from big picture to details, one question per chapter;
    - a glossary of terms and the names to use for them;
    - the overall title and `<name>`, a title for each chapter, and each chapter's `NN-slug` (its number and its title in kebab-case);
+   - the commit line from step 2 of `SKILL.md`, which every chapter copies to its `commit.txt`, so all chapters name the same commit;
    - the level, the format, the colour theme, the voice, and whether there is music and sound effects, the same for every chapter. Choose the theme with the user as in step 8 of `SKILL.md`, on the first chapter that has a code beat, before the others are built.
 
    Confirm the chapter plan with the user (intake question 5), then build.
@@ -17,7 +18,7 @@ Work in a folder `<name>/`, in the current directory unless the user names a pla
 
    ```bash
    for d in chapters/*/; do n=$(basename "$d"); echo "file '$PWD/chapters/$n/out/$n.mp4'"; done > list.txt
-   ffmpeg -f concat -safe 0 -i list.txt -c copy -metadata title="<title>" <name>.mp4
+   ffmpeg -f concat -safe 0 -i list.txt -c copy -metadata title="<title>" -metadata comment="<commit line>" <name>.mp4
    ```
 
    Run step 11 of `SKILL.md` once, on the joined file. Also deliver the individual chapter files, because people skip around.

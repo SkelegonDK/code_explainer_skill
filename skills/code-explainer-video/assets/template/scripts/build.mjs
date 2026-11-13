@@ -14,6 +14,8 @@ const TAIL = 0.6; // seconds of pause after each beat, so the viewer can read
 const { ELEVENLABS_API_KEY: KEY, VOICE_ID, MODEL_ID = "eleven_multilingual_v2" } = process.env;
 mkdirSync(OUT, { recursive: true });
 const state = existsSync(STATE) ? JSON.parse(readFileSync(STATE, "utf8")) : {};
+// The repository and commit a video about a codebase describes, written in step 2. A concept video has none.
+const commit = existsSync("commit.txt") ? readFileSync("commit.txt", "utf8").trim() : "";
 
 // Mistakes stop the build before any audio is made, with one line that says what to fix.
 const stop = (message) => {
@@ -46,6 +48,7 @@ const beats = ids.map((id) => {
     if (loop) fail(id, `"${loop[0]}" has an edge to itself`);
     if (focus.length > said) fail(id, `focus has ${focus.length} entries but the narration has ${said} sentences`);
   } else {
+    if (commit && !hasTitle) fail(id, "a code beat needs a first line '# path/to/file:lines'");
     // The sentences a mark is lit during, as in src/annotations/Mark.tsx: `!mark(1:2) 3` or `!error 2-3 Type: message`.
     const marks = source.matchAll(/!(?:mark|error)(?:\([^)]*\)|\[[^\]]*\])?[ \t]+(\d+)(?:-(\d+))?(?=\s|$)/g);
     const [off] = [...marks].find(([, from, to = from]) => from < 1 || to > said || to - from < 0) ?? [];
@@ -102,7 +105,10 @@ for (const [i, beat] of beats.entries()) {
   manifest.push({ id: beat.id, title: beat.title, text: beat.text, file: beat.visual, seconds, frames: Math.ceil((seconds + TAIL) * FPS) });
 }
 writeFileSync(`${OUT}/manifest.json`, JSON.stringify(manifest, null, 2));
+writeFileSync(`${OUT}/commit.txt`, commit);
 
 let frame = 0;
 for (const beat of manifest) console.log(`${beat.id}  frames ${frame}-${(frame += beat.frames) - 1}  ${beat.file}`);
 console.log(`${manifest.length} beats, ${(frame / FPS).toFixed(1)}s of video`);
+const shown = new Set(manifest.filter((beat) => !beat.file.endsWith(".json")).map((beat) => beat.title));
+if (commit) console.log(`Code shown from ${commit}: ${[...shown].join(", ")}`);
