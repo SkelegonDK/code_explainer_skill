@@ -1,19 +1,21 @@
 ---
 name: "code-explainer-video"
 description: "Make a narrated developer explainer video (Remotion + ElevenLabs) about a line, block, file, or architecture of a codebase, or about a language or library concept with no codebase, for onboarding yourself or a teammate."
+allowed-tools: Read, Grep, Glob, Bash(node scripts/build.mjs), Bash(npx remotion still:*), Bash(npx remotion render:*), Bash(ffmpeg:*), Bash(ffprobe:*)
 ---
 
 # Code explainer video
 
 Narrated, animated walkthroughs of code for developers. The viewer is an engineer: show real code, name real files and functions, explain *why* and *how*, never simplify into analogies for non-developers. How much the viewer already knows about the subject is asked in intake and sets what the script assumes.
 
-Stack: Remotion's Code Hike template (code that morphs between steps, in one of eleven colour themes the user picks in step 8), diagrams and charts drawn and animated in Remotion (diagrams are laid out by dagre), ElevenLabs for narration (the ElevenLabs connector, or the API with a key), and burnt-in captions. Load the `remotion-best-practices` skill when you change the Remotion code in `template/`.
+Stack: Remotion's Code Hike template (code that morphs between steps, in one of eleven colour themes the user picks in step 8), diagrams and charts drawn and animated in Remotion (diagrams are laid out by dagre), ElevenLabs for narration (the ElevenLabs connector, or the API with a key), and burnt-in captions. Load the `remotion-best-practices` skill when you change the Remotion code in `assets/template/`.
 
 Files next to this SKILL.md ("the skill directory"):
-- `template/`: the Remotion source files copied into every video project.
+- `scripts/setup.sh`: builds the video project in step 7.
+- `assets/template/`: the Remotion source files copied into every video project.
 - `references/voice.md`: read in step 10, before generating narration.
 - `references/long-form.md`: read first when the video is 15-30 minutes; it splits the work into chapters, says who runs which step for each, and joins them.
-- `free_audio/`: a music loop and interface sounds (click, pop, whoosh, nope; four variants each), copied into every video project in step 7.
+- `assets/audio/`: a music loop and interface sounds (click, pop, whoosh, nope; four variants each), copied into every video project in step 7.
 
 `<name>-draft/` and the video project `<name>/` go in the current directory unless the user names a place. Both are kept out of git (steps 2 and 7), so they never enter the user's repository.
 
@@ -215,20 +217,11 @@ Fix every `wrong` row, cut or soften every `unverifiable` one, and rewrite flagg
 
 ## 7. Project setup (once per video)
 
-Only now build the video project. Run this as one shell command, with the skill directory's absolute path in place of `<skill dir>`, because many agents do not keep variables or the working directory between commands:
-
-```bash
-SKILL_DIR="<skill dir>" && npx create-video@latest --yes --code-hike <name> \
-  && rm -rf <name>/.git && echo '*' >> <name>/.gitignore \
-  && mv <name>-draft/* <name>/ && rm -r <name>-draft && cd <name> \
-  && npx remotion add @remotion/media && npm i @dagrejs/dagre@3 && npm rm twoslash-cdn && rm public/code* \
-  && rm src/calculate-metadata/process-snippet.ts src/annotations/Callout.tsx src/annotations/Error.tsx src/ProgressBar.tsx src/ReloadOnCodeChange.tsx \
-  && cp -R "$SKILL_DIR/template/." . && cp -R "$SKILL_DIR/free_audio" public/audio
-```
+Only now build the video project. In the folder that holds `<name>-draft/`, run `bash "<skill dir>/scripts/setup.sh" <name>`, with the skill directory's absolute path in place of `<skill dir>`.
 
 Every later command runs in `<name>/`; start each with `cd <name> &&` if your shell does not keep the directory.
 
-`create-video` refuses to scaffold into an existing folder, which is why the script lives in `<name>-draft/` until now. Outside a git repository it also makes `<name>/` a repository of its own; inside one it does not, and the project shows up as untracked files there. Removing `.git` and adding `*` to the project's `.gitignore` keeps the project out of every repository in both cases. Twoslash is removed on purpose: it flags every unresolved import in a code excerpt as a red error. Dagre is pinned to major version 3 because the layout depends on it. The scaffold's config files, `src/index.ts`, `src/utils.ts`, `src/annotations/InlineToken.tsx` stay. The copied files replace the template's composition with one driven by `beats/`:
+The script scaffolds `<name>/` from Remotion's Code Hike template, moves the beats into it, and copies `assets/template/` over it and `assets/audio/` into `public/audio/`. It pins Remotion and dagre to the versions the template was last tested with; the Code Hike template itself always comes from its latest commit. `create-video` refuses to scaffold into an existing folder, which is why the script lives in `<name>-draft/` until now. The script removes the project's `.git` and adds `*` to its `.gitignore`, which keeps it out of every repository, and removes Twoslash, which flags every unresolved import in a code excerpt as a red error. The copied files replace the template's composition with one driven by `beats/`:
 
 - `scripts/build.mjs` turns `beats/` into `public/beats/` (audio, visuals, `manifest.json`), measures each beat's audio and prints each beat's frame range.
 - `src/Main.tsx` plays the beats in sequence: title, visual, audio, captions.

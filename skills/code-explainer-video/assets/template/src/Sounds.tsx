@@ -2,7 +2,7 @@ import { Audio } from "@remotion/media";
 import { createContext, useContext } from "react";
 import { interpolate, Sequence, staticFile, useVideoConfig } from "remotion";
 
-// The sound files in public/audio/ (the skill's free_audio/), the one each event plays and its volume, from 0 to 1.
+// The sound files in public/audio/ (the skill's assets/audio/), the one each event plays and its volume, from 0 to 1.
 const SOUNDS = {
   whoosh: { file: "whoosh-3", volume: 0.2 }, // a new visual comes in
   pop: { file: "pop-2", volume: 0.5 }, // a diagram node or chart value appears
