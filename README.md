@@ -69,11 +69,11 @@ Each video gets a title that names what it explains, proposed with the outline f
 
 ## Colour themes
 
-The agent asks you to pick a theme during the draft build, showing a frame of your own code in each. Every theme sets the syntax colours, the highlight on marks, diagram nodes and chart values, and the colour of errors. In the ten themes besides Monokai, every syntax colour reaches at least 3.6:1 contrast against its background. Captions are white on black in all of them.
+The agent asks you to pick a theme during the draft build, showing a frame of your own code in each. Every theme sets the syntax colours, the highlight on marks, diagram nodes and chart values, and the colour of errors. In the ten themes besides monokai, every syntax colour reaches at least 3.6:1 contrast against its background. Captions are white on black in all of them.
 
-**`monokai`**: Dark. The classic editor theme, and the default.
+**`monokai`**: Dark. The default.
 
-![Monokai theme](docs/themes/monokai.png)
+![monokai theme](docs/themes/monokai.png)
 
 **`grape`**: Dark. Vintage grape with lime cream. Modern.
 

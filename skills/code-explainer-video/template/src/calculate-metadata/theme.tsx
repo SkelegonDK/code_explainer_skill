@@ -29,7 +29,7 @@ const rgb = (hex: string) => channels(hex).join(", "); // "r, g, b", for rgba()
 const mix = (a: string, b: string, t: number) => // as hex, the only form lighter reads
   `#${channels(a).map((c, i) => Math.round(t * c + (1 - t) * channels(b)[i]).toString(16).padStart(2, "0")).join("")}`;
 
-// The syntax theme Code Hike highlights with: Monokai's own, or one made from a palette.
+// The syntax theme Code Hike highlights with: monokai, or one made from a palette.
 export const syntax = (theme: Theme): Syntax => {
   if (theme === "monokai") return theme;
   const { bg, fg, kw, str, fn } = palettes[theme];

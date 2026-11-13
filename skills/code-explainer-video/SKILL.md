@@ -253,7 +253,7 @@ Code excerpts in `beats/` are not meant to compile, so do not run the project's 
 
    | # | Theme | Look |
    |---|---|---|
-   | 1 | `monokai` | dark, the classic editor theme (default) |
+   | 1 | `monokai` | dark (default) |
    | 2 | `grape` | dark, vintage grape with lime cream; modern |
    | 3 | `french-blue` | dark, French blue with celadon; modern |
    | 4 | `espresso` | dark, espresso with peony; warm |
