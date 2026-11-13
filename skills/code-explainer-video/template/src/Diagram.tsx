@@ -2,7 +2,7 @@ import { Graph as Dagre, layout, Point } from "@dagrejs/dagre";
 import { useMemo } from "react";
 import { ERR, HOT } from "./annotations/Mark";
 import { Figure, STAGGER, useFigure } from "./figure";
-import { BOX, CHAR, fontFamily, fontSize } from "./font";
+import { CHAR, fontFamily, fontSize, useBox } from "./font";
 
 // beats/NN.diagram.json. `nodes` maps an id to its label; an edge is [from, to, label].
 // `errors` are edges drawn in red, from where an error is thrown to where it is caught.
@@ -44,11 +44,11 @@ const place = (graph: Graph, rankdir: "LR" | "TB", disableOptimalOrderHeuristic:
 
 // Siblings keep the order of `nodes` (left to right, or top to bottom) when that layout is clean.
 // Otherwise dagre reorders to reduce crossings, which breaks ties between siblings in no useful order.
-const arrange = (graph: Graph, rankdir: "LR" | "TB") => {
+const arrange = (graph: Graph, rankdir: "LR" | "TB", box: { width: number; height: number }) => {
   const listed = place(graph, rankdir, true);
   const g = clean(listed) ? listed : place(graph, rankdir, false);
   const { width, height } = g.graph();
-  return { g, width, height, scale: Math.min(1.5, BOX.width / width, BOX.height / height) };
+  return { g, width, height, scale: Math.min(1.5, box.width / width, box.height / height) };
 };
 
 // A smooth line through dagre's points: a curve around each inner point, straight into the last one.
@@ -61,6 +61,7 @@ const curve = ([first, ...rest]: Point[]) =>
 export const Diagram: React.FC<{ graph: Graph; prev: Graph | null; text: string; seconds: number }> = ({ graph, prev, text, seconds }) => {
   const ids = Object.keys(graph.nodes);
   const { appear, heat, landed, tone } = useFigure(graph, prev, ids.length, text, seconds);
+  const box = useBox();
 
   // An edge draws once both its ends are in. An error edge waits until the highlight lands on the node it leaves,
   // after the error edge before it drew, so the failure shows when the narration reaches it.
@@ -73,9 +74,9 @@ export const Diagram: React.FC<{ graph: Graph; prev: Graph | null; text: string;
 
   // Left-to-right unless top-down fits the frame at a larger scale.
   const { g, width, height, scale } = useMemo(() => {
-    const [across, down] = (["LR", "TB"] as const).map((dir) => arrange(graph, dir));
+    const [across, down] = (["LR", "TB"] as const).map((dir) => arrange(graph, dir, box));
     return down.scale > across.scale ? down : across;
-  }, [graph]);
+  }, [graph, box]);
 
   return (
     <svg width={width * scale} height={height * scale} viewBox={`0 0 ${width} ${height}`} style={{ margin: "auto", overflow: "visible", fontFamily }}>

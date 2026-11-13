@@ -26,7 +26,7 @@ When the subject is a language or library concept ("how do variables work in Jav
 - In step 6, give the reviewer the examples with the beats and ask it to rerun them. Tell it that the examples and the cited documentation stand in for the repository, and that diagram nodes are concepts, not modules.
 - Name every example `.mjs`, or `.cjs` when it needs `require` or non-strict code. A plain `.js` file changes meaning in step 7, because the project's `package.json` says `"type": "module"`.
 
-## 1. Intake: four questions, in this order, before any work
+## 1. Intake: five questions, in this order, before any work
 
 Ask one at a time (AskUserQuestion when available). Do not skip or merge them.
 
@@ -38,10 +38,17 @@ Ask one at a time (AskUserQuestion when available). Do not skip or merge them.
 
    If they don't know, use "Familiar with the subject".
 3. **How long should it take?** Offer: ~30 s (one line or block), ~1 min or ~2 min (a function or module), ~5 min (a subsystem or flow), 15-30 min (codebase onboarding, built as chapters by parallel agents). If they don't know, recommend one based on what you found in question 1 and on the level: someone new to the subject needs more time for the same code.
-4. **Is my understanding correct?** After reading the code, send back:
+4. **Which format?** Offer exactly these four, with what each is for:
+   - **16:9** (1920×1080): landscape, for screens, YouTube and docs.
+   - **9:16** (1080×1920): vertical, for Shorts, Reels and TikTok.
+   - **4:5** (1080×1350): portrait, for LinkedIn and Instagram feeds.
+   - **1:1** (1080×1080): square, for feeds.
+
+   If they don't know, use 16:9. The format sets how much code fits on screen (step 3).
+5. **Is my understanding correct?** After reading the code, send back:
    - the one question the video answers, in one sentence;
    - the title: a short phrase naming what the video explains, specific to this codebase or concept (e.g. "How API sessions expire and renew", not "Code explainer"), and its file name, `<name>`, the title in kebab-case (`how-api-sessions-expire-and-renew`);
-   - the level, the length and the beat count;
+   - the level, the length, the format and the beat count;
    - the outline: one line per beat (what is on screen + the point it makes);
    - anything you're leaving out on purpose.
    Build only after a yes. Revise and re-confirm on a no. This step exists because narration costs ElevenLabs credits and renders take minutes.
@@ -80,10 +87,17 @@ Beat rules:
 - Open with the question being answered and close with a one-line recap. No intro fluff, no "in this video".
 - Architecture first, then zoom in: diagram, then the entry-point code, then the interesting line.
 - Explain purpose, not lines. Each code beat says what the code is *for* and how it connects to the previous beat, then points at the one or two lines that matter. Never walk through a block line by line.
-- Code beats: at most 16 lines (the bottom of the frame is reserved for captions) and 80 characters per line. Cut irrelevant lines and replace them with a `// ...` comment. The code is centred and sized to fill the frame: an excerpt at those limits is set at about 32 px, and a shorter and narrower one grows, up to 80 px, so every line you cut and every long line you shorten makes the rest easier to read. A beat that repeats the previous beat's snippet keeps the code still and moves only the marks.
+- Code beats: at most the lines and characters per line of the format (the bottom of the frame is reserved for captions). Cut irrelevant lines and replace them with a `// ...` comment. The code is centred and sized to fill the frame: an excerpt at those limits is set at about 32 px, and a shorter and narrower one grows, up to 80 px, so every line you cut and every long line you shorten makes the rest easier to read. In the narrow formats, rewrap long lines (one argument per line) rather than shorten names.
+
+  | Format | Lines | Characters per line | On-screen title |
+  |---|---|---|---|
+  | 16:9 | 16 | 80 | 100 characters |
+  | 9:16 | 30 | 44 | 55 characters |
+  | 4:5 | 20 | 44 | 55 characters |
+  | 1:1 | 16 | 44 | 55 characters | A beat that repeats the previous beat's snippet keeps the code still and moves only the marks.
 - Mark what the narration is talking about with a Code Hike comment directly above it, in the language's comment syntax (`# !mark` in Python): `// !mark` (next line), `// !mark(1:4)` (next four lines), or `// !mark[/expiresAt/]` (the part of the next line that matches the regex), which boxes one name or expression when the point is not the whole line. While a mark is lit, the lines without one are dimmed.
 - Time each mark to the sentence that talks about it by putting the sentence's number after it: `// !mark 2` is lit during the second sentence of the beat's narration, `// !mark(1:3) 2-3` during the second and third, and a mark with no number during the whole beat. Leave the first sentence unmarked when it says what the code is for, so the viewer sees the whole excerpt first, and move the mark as the following sentences point at lines. Marks may overlap.
-- A mark can carry a label, written after the number: `// !mark 2 runs on every request`. It shows under the mark's last line while the mark is lit. Use one for what the code cannot show and the narration cannot hold on screen: a concrete value (`s.expiresAt = 10:31, now = 10:45`), a result (`returns null`), or a name for what the lines do. At most two per beat. A label is indented like its line and must fit in 80 characters with that indentation. It is a claim, so it is fact-checked like the narration. A label whose first word is a number needs a sentence range before it (`// !mark 1-3 3 retries at most`).
+- A mark can carry a label, written after the number: `// !mark 2 runs on every request`. It shows under the mark's last line while the mark is lit. Use one for what the code cannot show and the narration cannot hold on screen: a concrete value (`s.expiresAt = 10:31, now = 10:45`), a result (`returns null`), or a name for what the lines do. At most two per beat. A label is indented like its line and must fit the format's characters per line with that indentation. It is a claim, so it is fact-checked like the narration. A label whose first word is a number needs a sentence range before it (`// !mark 1-3 3 retries at most`).
 - Errors: show when and where an error happens, not only that one can. In one beat, `!mark` the condition and put `// !error <Type>: <message>` directly above the line that throws (`// !error(1:2)` for two lines). `!error` is a red mark whose label is the message, so write the message the way the error would print, with the type and message the code produces, and number both: the mark with the sentence that states the condition, the error with the sentence that says it fails (`// !error 3 SessionExpired: session expired at 10:31`). The narration states the condition in words. Then show where the error lands: a code beat that marks the `catch`, or a diagram with `errors`. If nothing catches it, say what happens instead. A rejected promise, an error return value (Go's `err`, a `Result`) and an error callback are errors too: put `!error` above the line that rejects or returns it.
 - Diagram beats: boxes and arrows, at most 8 nodes, labels of at most 24 characters. The layout is automatic. Give each sentence of the narration one node to talk about, or a few that belong together, in the order the arrows run, because the highlight moves from node to node as the sentences are spoken. A tree, such as a file tree or a call tree, is a diagram whose arrows all run from parent to child.
 - Chart beats: a bar chart to compare 2 to 8 values, or a line chart for 3 to 8 values that have an order, such as releases or input sizes. One series, names of at most 10 characters. Use only numbers you read in the repository or got by running a command. Never estimate a number.
@@ -185,7 +199,7 @@ In both diagrams and charts:
 ## 5. Check length and diagrams (no Remotion yet)
 
 1. **Length.** Estimate the runtime: narration words (`grep -hv '^# ' <name>-draft/beats/*.txt | wc -w`) ÷ 2.5, plus 0.6 s per beat. If it's more than 10% over or under the budget, cut or add beats now.
-2. **Code excerpts.** At most 16 lines and 80 characters per line, not counting `!mark` and `!error` comments. A label or `!error` message counts as one line: its row is kept free under the mark for the whole beat. No mark is numbered past the last sentence of its beat.
+2. **Code excerpts.** At most the format's lines and characters per line (step 3), not counting `!mark` and `!error` comments. A label or `!error` message counts as one line: its row is kept free under the mark for the whole beat. No mark is numbered past the last sentence of its beat.
 3. **Diagrams and charts.** A diagram has at most 8 nodes and 24 characters per label, every id in `edges`, `errors` and `focus` is a key of `nodes`, and no edge goes from a node to itself. A chart has 2 to 8 values, names of at most 10 characters and a `source`, and every name in `focus` is a key of `data`. `focus` has no more entries than the narration has sentences. A beat that continues a diagram or chart differs from the beat before only in `focus`; check with `diff`.
 
 ## 6. Independent fact-check (before any Remotion code or narration)
@@ -219,7 +233,7 @@ Every later command runs in `<name>/`; start each with `cd <name> &&` if your sh
 - `src/Main.tsx` plays the beats in sequence: title, visual, audio, captions.
 - `src/Diagram.tsx` and `src/Chart.tsx` draw diagram and chart beats, and `src/figure.ts` times their animation.
 - `src/annotations/Mark.tsx` implements `!mark` and `!error`, and `src/CodeTransition.tsx` times them to the sentences, and centres the code and sizes it to the frame, from its rows and its longest row. `src/Captions.tsx` times caption chunks across each beat's audio.
-- `src/Root.tsx` sets the colour theme, `monokai`. Change it there only if the user asks for another; `src/calculate-metadata/theme.tsx` lists the choices.
+- `src/Root.tsx` sets the format and the colour theme. Set `format` there to the one chosen in intake (`"16:9"` by default). The theme is `monokai`; change it only if the user asks for another, and `src/calculate-metadata/theme.tsx` lists the choices.
 
 Code excerpts in `beats/` are not meant to compile, so do not run the project's `tsc` or `npm run lint`: they report errors there.
 
@@ -239,12 +253,12 @@ A still cannot show motion, so check each run of diagram or chart beats on a con
 1. Render the run, from the first frame of its first beat to the last frame of its last, and tile it at two frames per second:
    ```bash
    npx remotion render Main out/anim.mp4 --frames=<first>-<last> --scale=0.5
-   ffmpeg -y -v error -i out/anim.mp4 -vf "fps=2,scale=480:-1,tile=4x6" out/anim-%d.png
+   ffmpeg -y -v error -i out/anim.mp4 -vf "fps=2,scale=480:480:force_original_aspect_ratio=decrease,tile=4x6" out/anim-%d.png
    ```
    A figure builds in within its first two seconds, too fast for this sheet, so also tile the first two seconds of each beat that builds a new diagram or chart at ten frames per second (`<f>` is the beat's first frame, 60 frames are 2 s):
    ```bash
    npx remotion render Main out/build.mp4 --frames=<f>-<f+59> --scale=0.5
-   ffmpeg -y -v error -i out/build.mp4 -vf "fps=10,scale=480:-1,tile=4x5" out/build-%d.png
+   ffmpeg -y -v error -i out/build.mp4 -vf "fps=10,scale=480:480:force_original_aspect_ratio=decrease,tile=4x5" out/build-%d.png
    ```
 2. Read every sheet left to right, top to bottom. In each tile the highlighted node, bar or point must be the one the caption is talking about. Each red error edge must draw in the tile where the caption says the error happens. On the build sheets the nodes must appear in an order that follows the arrows. A continued diagram or chart must not move or rebuild.
 3. Render a still of the last frame of each of these beats. Every label and value must be easy to read, and nothing may overlap or touch the captions.

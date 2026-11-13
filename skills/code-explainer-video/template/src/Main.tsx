@@ -7,17 +7,18 @@ import { CodeTransition } from "./CodeTransition";
 import { Diagram, Graph } from "./Diagram";
 import { ThemeColors, ThemeProvider } from "./calculate-metadata/theme";
 import { Beat } from "./calculate-metadata/get-files";
-import { fontFamily } from "./font";
+import { fontFamily, useBox } from "./font";
 
 export type Step = Beat & { code: HighlightedCode | null; graph: Graph | null; chart: Chart | null };
 export type Props = { steps: Step[] | null; themeColors: ThemeColors | null };
 
-// The bottom padding keeps the captions clear, so a visual is centred in the room above them.
-const beatStyle: React.CSSProperties = { flexDirection: "column", padding: "48px 96px 148px", gap: 24 };
 const titleStyle: React.CSSProperties = { fontFamily, fontSize: 28, opacity: 0.6, height: 40 };
 
 export const Main: React.FC<Props> = ({ steps, themeColors }) => {
+  const { pad } = useBox();
   if (!steps || !themeColors) throw new Error("Run calculateMetadata first");
+  // The bottom padding keeps the captions clear, so a visual is centred in the room above them.
+  const beatStyle: React.CSSProperties = { flexDirection: "column", padding: `48px ${pad}px 148px`, gap: 24 };
   return (
     <ThemeProvider themeColors={themeColors}>
       <AbsoluteFill style={{ backgroundColor: themeColors.background, color: themeColors.foreground }}>

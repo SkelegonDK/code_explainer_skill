@@ -13,16 +13,16 @@ import type { Step } from "./Main";
 import { applyStyle } from "./utils";
 
 import { tokenTransitions } from "./annotations/InlineToken";
-import { BOX, CHAR, fontFamily, tabSize } from "./font";
+import { CHAR, fontFamily, tabSize, useBox } from "./font";
 
 const MAX = 80; // px, the largest the code gets
 
 // The largest font at which the code fits the box: its longest row across, with a character to spare so that
-// no label wraps, and every row down. At the limits of an excerpt, 16 rows of 80 characters, it is 32 px.
-const fit = (code: HighlightedCode) => {
+// no label wraps, and every row down. At the limits of an excerpt for the format (SKILL.md), it is about 32 px.
+const fit = (code: HighlightedCode, box: { width: number; height: number }) => {
   const all = rows(code).map((row) => row.replace(/\t/g, " ".repeat(tabSize)));
   const widest = Math.max(...all.map((row) => row.length)) + 1;
-  return Math.min(MAX, (BOX.width - 2 * PAD) / (CHAR * widest), BOX.height / (1.5 * all.length));
+  return Math.min(MAX, (box.width - 2 * PAD) / (CHAR * widest), box.height / (1.5 * all.length));
 };
 
 export function CodeTransition({
@@ -39,6 +39,7 @@ export function CodeTransition({
   readonly durationInFrames?: number;
 }) {
   const frame = useCurrentFrame();
+  const box = useBox();
   const oldCode = prev?.code ?? null;
 
   const ref = React.useRef<HTMLPreElement>(null);
@@ -110,8 +111,8 @@ export function CodeTransition({
 
   // The font grows or shrinks from the previous code's size while the code moves.
   // The auto margin centres the code in the frame, as wide as its longest row, like a diagram.
-  const from = fit(oldCode ?? newCode);
-  const fontSize = interpolate(frame, [0, durationInFrames], [from, oldSnapshot ? fit(newCode) : from], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const from = fit(oldCode ?? newCode, box);
+  const fontSize = interpolate(frame, [0, durationInFrames], [from, oldSnapshot ? fit(newCode, box) : from], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const style: React.CSSProperties = { position: "relative", margin: "auto", fontSize, lineHeight: 1.5, fontFamily, tabSize };
 
   return (

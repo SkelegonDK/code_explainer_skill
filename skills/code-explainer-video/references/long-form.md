@@ -2,13 +2,13 @@
 
 Work in a folder `<name>/`, in the current directory unless the user names a place, and start it with `mkdir -p <name>/chapters && echo '*' > <name>/.gitignore` so that it stays out of the user's repository. Paths below are relative to it.
 
-1. **Plan (lead agent).** Run the intake (all four questions) and map the codebase, fanning out one read-only subagent per area if your agent supports subagents. Write `plan.md` with:
+1. **Plan (lead agent).** Run the intake (all five questions) and map the codebase, fanning out one read-only subagent per area if your agent supports subagents. Write `plan.md` with:
    - the chapter list: 3-5 min each, ordered from big picture to details, one question per chapter;
    - a glossary of terms and the names to use for them;
    - the overall title and `<name>`, a title for each chapter, and each chapter's `NN-slug` (its number and its title in kebab-case);
-   - the level and the voice, the same for every chapter.
+   - the level, the format and the voice, the same for every chapter.
 
-   Confirm the chapter plan with the user (intake question 4), then build.
+   Confirm the chapter plan with the user (intake question 5), then build.
 2. **Chapter 00** is a 1-minute map: one architecture diagram with each later chapter as a node. With more than 8 later chapters, make each node a group of related chapters, because a diagram has at most 8 nodes.
 3. **Write chapters.** If your agent supports subagents, start one per chapter, in parallel. Give each `plan.md`, its chapter's scope and question, and steps 2-5 of `SKILL.md`. Each works in `chapters/`, with the chapter's `NN-slug` as its `<name>` (draft in `chapters/NN-slug-draft/`) and stops after step 5, before any Remotion code. Without subagents, write the chapters one after another yourself.
 4. **Fact-check each chapter (lead agent).** Run step 6 of `SKILL.md` on every chapter's script and diagrams, with a fresh reviewer per chapter. Chapter agents may not be able to start subagents of their own, so the lead runs this step. Also check the narration against the glossary.

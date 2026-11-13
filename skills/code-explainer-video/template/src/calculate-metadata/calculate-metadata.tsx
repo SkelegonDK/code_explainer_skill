@@ -4,7 +4,7 @@ import { CalculateMetadataFunction } from "remotion";
 import { z } from "zod";
 import { Props } from "../Main";
 import { getBeats, getText } from "./get-files";
-import { schema } from "./schema";
+import { frames, schema } from "./schema";
 
 export const calculateMetadata: CalculateMetadataFunction<Props & z.infer<typeof schema>> = async ({ props }) => {
   const steps = await Promise.all(
@@ -20,6 +20,7 @@ export const calculateMetadata: CalculateMetadataFunction<Props & z.infer<typeof
     }),
   );
   return {
+    ...frames[props.format],
     durationInFrames: steps.reduce((sum, s) => sum + s.frames, 0),
     props: { ...props, steps, themeColors: await getThemeColors(props.theme) },
   };

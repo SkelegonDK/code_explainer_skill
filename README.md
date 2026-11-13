@@ -16,7 +16,7 @@ The skill is written for developers watching. It shows real code, explains *why*
 
 ## How it works
 
-1. **Intake.** The agent asks four questions, one at a time: what you need to understand, how well you know the subject (new to it, familiar with it, or expert in it), how long the video should be (30 s to 30 min), and whether its outline is correct. The level sets what the script assumes you know. The agent builds nothing until you approve the outline.
+1. **Intake.** The agent asks five questions, one at a time: what you need to understand, how well you know the subject (new to it, familiar with it, or expert in it), how long the video should be (30 s to 30 min), which format it should be (16:9 landscape, 9:16 vertical, 4:5 portrait or 1:1 square), and whether its outline is correct. The level sets what the script assumes you know. The agent builds nothing until you approve the outline.
 2. **Research.** The agent traces the code to its definitions and keeps a `claim → path:line` log.
 3. **Script.** The agent writes the script as *beats*. Each beat is one visual (a code excerpt, a diagram or a chart) and one to three sentences of narration, sized to the time budget at about 150 words per minute.
 4. **Length and diagram check.** The agent estimates the runtime from the word count and checks every diagram and chart against the size limits.

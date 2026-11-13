@@ -1,6 +1,6 @@
 import { HOT } from "./annotations/Mark";
 import { Figure, STAGGER, useFigure } from "./figure";
-import { CHAR, fontFamily, fontSize } from "./font";
+import { CHAR, fontFamily, fontSize, useBox } from "./font";
 
 // beats/NN.chart.json. One series, measured from zero. `unit` is appended to each value as written.
 // The file also names its `source`, which is for the fact-checker and is not drawn.
@@ -15,7 +15,7 @@ export const Chart: React.FC<{ chart: Chart; prev: Chart | null; text: string; s
   const names = Object.keys(chart.data);
   const { appear, heat, tone } = useFigure(chart, prev, names.length, text, seconds);
   const isLine = chart.type === "line";
-  const slot = Math.min(SLOT, WIDTH / names.length);
+  const slot = Math.min(SLOT, Math.min(WIDTH, useBox().width) / names.length);
   const width = slot * names.length;
   const bar = slot / 3;
   const max = Math.max(...Object.values(chart.data)) || 1; // all zero: draw at the baseline
