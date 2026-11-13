@@ -9,6 +9,7 @@ import {
 } from "codehike/utils/token-transitions";
 import { line, lit, mark, Marks, PAD, rows } from "./annotations/Mark";
 import { sentences, useCue } from "./figure";
+import { Cues, move } from "./Sounds";
 import type { Step } from "./Main";
 import { applyStyle } from "./utils";
 
@@ -104,6 +105,10 @@ export function CodeTransition({
   const still = oldCode && String(rows(oldCode)) === String(rows(newCode));
   const ended = still ? oldCode.annotations.filter((a) => lit(a, sentences(prev?.text ?? "").length - 1)) : null;
   const cue = useCue(text, seconds, ended ? 0 : durationInFrames);
+  // A sound as each sentence starts, when the marks lit change: a nope when an error lights, otherwise a click.
+  const id = (a: CodeAnnotation) => `${a.name} ${JSON.stringify({ ...a, query: undefined })}`;
+  const litAt = (k: number) => (k < 0 ? (ended ?? []) : newCode.annotations.filter((a) => lit(a, k))).map(id);
+  const cues = cue.at.map((at, k) => ({ at, sound: move(litAt(k), litAt(k - 1), (i) => i.startsWith("error ")) }));
   const marks = {
     all: [...(ended ?? []).map((a) => ({ ...a, query: "0" })), ...code.annotations],
     heat: (a: CodeAnnotation) => cue.heat((k) => lit(a, k)),
@@ -117,6 +122,7 @@ export function CodeTransition({
 
   return (
     <Marks.Provider value={marks}>
+      <Cues cues={cues} />
       <Pre ref={ref} code={code} handlers={handlers} style={style} />
     </Marks.Provider>
   );

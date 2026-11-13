@@ -13,6 +13,7 @@ Files next to this SKILL.md ("the skill directory"):
 - `template/`: the Remotion source files copied into every video project.
 - `references/voice.md`: read in step 10, before generating narration.
 - `references/long-form.md`: read first when the video is 15-30 minutes; it splits the work into chapters, says who runs which step for each, and joins them.
+- `free_audio/`: a music loop and interface sounds (click, pop, whoosh, nope; four variants each), copied into every video project in step 7.
 
 `<name>-draft/` and the video project `<name>/` go in the current directory unless the user names a place. Both are kept out of git (steps 2 and 7), so they never enter the user's repository.
 
@@ -222,7 +223,7 @@ SKILL_DIR="<skill dir>" && npx create-video@latest --yes --code-hike <name> \
   && mv <name>-draft/* <name>/ && rm -r <name>-draft && cd <name> \
   && npx remotion add @remotion/media && npm i @dagrejs/dagre@3 && npm rm twoslash-cdn && rm public/code* \
   && rm src/calculate-metadata/process-snippet.ts src/annotations/Callout.tsx src/annotations/Error.tsx src/ProgressBar.tsx src/ReloadOnCodeChange.tsx \
-  && cp -R "$SKILL_DIR/template/." .
+  && cp -R "$SKILL_DIR/template/." . && cp -R "$SKILL_DIR/free_audio" public/audio
 ```
 
 Every later command runs in `<name>/`; start each with `cd <name> &&` if your shell does not keep the directory.
@@ -233,6 +234,7 @@ Every later command runs in `<name>/`; start each with `cd <name> &&` if your sh
 - `src/Main.tsx` plays the beats in sequence: title, visual, audio, captions.
 - `src/Diagram.tsx` and `src/Chart.tsx` draw diagram and chart beats, and `src/figure.ts` times their animation.
 - `src/annotations/Mark.tsx` implements `!mark` and `!error`, and `src/CodeTransition.tsx` times them to the sentences, and centres the code and sizes it to the frame, from its rows and its longest row. `src/Captions.tsx` times caption chunks across each beat's audio.
+- `src/Sounds.tsx` plays the music and the sound effects: a whoosh when a new visual comes in (not on code after code, nor on a continued diagram or chart), a pop as each diagram node or chart value appears, a click when the highlight moves to a new mark, node or value, and a nope when it reaches an `!error` or a node an error edge leaves. The music loops under the narration at a low volume and fades in and out. The table at the top of the file sets which variant each sound uses and its volume.
 - `src/Root.tsx` sets the format and the colour theme. Set `format` there to the one chosen in intake (`"16:9"` by default), and `theme` to the one chosen in step 8 (`"monokai"` by default).
 - `src/calculate-metadata/theme.tsx` defines the themes: each one's syntax colours, highlight colour and error colour.
 
@@ -292,8 +294,9 @@ A still cannot show motion, so check each run of diagram or chart beats on a con
 ## 10. Voice and render
 
 1. Read `references/voice.md` and generate one narration file per beat with the first option available: the ElevenLabs connector, an ElevenLabs API key, another text-to-speech provider, or none (silent video with captions). Use one voice for the whole video.
+   Also ask whether the video should have music and sound effects, with these four options: both (the default), sound effects only, music only, or neither. Set `music` and `sounds` in `src/Root.tsx` to match. When running unattended, keep both.
 2. `node scripts/build.mjs` again. Each beat's audio comes from `beats/NN.mp3`, else the API when a key is set, else silent placeholder. A rebuild without the key keeps beats voiced through the API. The build never plays stale narration: if a beat's narration changed and its audio did not, it stops and names the beat to re-voice. Changing the voice or the model re-voices every API-voiced beat.
-3. Render once: `npx remotion render Main out/<name>.mp4 --metadata title="<title>"`. Check that video and audio durations match (`ffprobe -v error -show_entries stream=codec_type,duration -of csv=p=0 out/<name>.mp4`) and, unless the video is meant to be silent, that the audio is not (`ffmpeg -i out/<name>.mp4 -af volumedetect -vn -f null - 2>&1 | grep mean_volume`; placeholder audio reads about -91 dB).
+3. Render once: `npx remotion render Main out/<name>.mp4 --metadata title="<title>"`. Check that video and audio durations match (`ffprobe -v error -show_entries stream=codec_type,duration -of csv=p=0 out/<name>.mp4`) and, unless the video is meant to be silent, that no beat still has placeholder audio: `grep -c '"from": "silent"' public/beats/audio.json` prints 0. Measuring the volume of the render cannot tell, because the music and sound effects play over placeholder narration too.
 
 ## 11. Before handing over
 

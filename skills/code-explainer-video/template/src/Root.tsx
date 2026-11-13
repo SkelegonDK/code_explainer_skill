@@ -7,7 +7,7 @@ export const RemotionRoot = () => (
   <Composition
     id="Main"
     component={Main}
-    defaultProps={{ steps: null, themeColors: null, theme: "monokai" as const, format: "16:9" as const }}
+    defaultProps={{ steps: null, themeColors: null, theme: "monokai" as const, format: "16:9" as const, music: true, sounds: true }}
     fps={30}
     calculateMetadata={calculateMetadata}
     schema={schema}

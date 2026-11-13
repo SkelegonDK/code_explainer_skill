@@ -1,5 +1,6 @@
 import { Easing, interpolate, interpolateColors, useCurrentFrame, useVideoConfig } from "remotion";
 import { useThemeColors } from "./calculate-metadata/theme";
+import { Cue, move } from "./Sounds";
 
 export const STAGGER = 5; // frames between one item appearing and the next
 const FADE = 12; // frames for an item to appear, and for the highlight to move
@@ -13,7 +14,7 @@ export const sentences = (text: string) => text.split(/(?<=[.!?])\s+/);
 // A focus entry as a list of ids: one, several or none.
 const ids = (entry?: string | string[] | null) => [entry ?? []].flat();
 
-const shape = (figure: Figure | null) => JSON.stringify({ ...figure, focus: undefined });
+export const shape = (figure: Figure | null) => JSON.stringify({ ...figure, focus: undefined });
 
 // Where the highlight is. `at` is the frame each sentence of the narration starts, timed like the captions, by its
 // position in the text, and no earlier than `built`. `heat` is how lit something is, from 0 to 1, given the sentences
@@ -47,6 +48,11 @@ export const useFigure = (figure: Figure, prev: Figure | null, items: number, te
 
   return {
     appear,
+    // A pop as each item appears, unless the figure is carried over, and a sound as each sentence starts (src/Sounds.tsx).
+    cues: (error: (id: string) => boolean = () => false): Cue[] => [
+      ...Array.from({ length: carried ? 0 : items }, (_, i) => ({ at: i * STAGGER, sound: "pop" as const })),
+      ...cue.at.map((at, k) => ({ at, sound: move(lit(k), lit(k - 1), error) })),
+    ],
     // The frame the highlight first lands on `id` at or after frame `after`, if it does.
     landed: (id: string, after: number) => cue.at.find((start, k) => start >= after && lit(k).includes(id)),
     heat: (id: string) => cue.heat((k) => lit(k).includes(id)),

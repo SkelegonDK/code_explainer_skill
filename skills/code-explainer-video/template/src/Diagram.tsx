@@ -2,6 +2,7 @@ import { Graph as Dagre, layout, Point } from "@dagrejs/dagre";
 import { useMemo } from "react";
 import { useThemeColors } from "./calculate-metadata/theme";
 import { Figure, STAGGER, useFigure } from "./figure";
+import { Cues } from "./Sounds";
 import { CHAR, fontFamily, fontSize, useBox } from "./font";
 
 // beats/NN.diagram.json. `nodes` maps an id to its label; an edge is [from, to, label].
@@ -60,7 +61,7 @@ const curve = ([first, ...rest]: Point[]) =>
 
 export const Diagram: React.FC<{ graph: Graph; prev: Graph | null; text: string; seconds: number }> = ({ graph, prev, text, seconds }) => {
   const ids = Object.keys(graph.nodes);
-  const { appear, heat, landed, tone } = useFigure(graph, prev, ids.length, text, seconds);
+  const { appear, cues, heat, landed, tone } = useFigure(graph, prev, ids.length, text, seconds);
   const box = useBox();
   const { hot, err } = useThemeColors();
 
@@ -80,43 +81,47 @@ export const Diagram: React.FC<{ graph: Graph; prev: Graph | null; text: string;
   }, [graph, box]);
 
   return (
-    <svg width={width * scale} height={height * scale} viewBox={`0 0 ${width} ${height}`} style={{ margin: "auto", overflow: "visible", fontFamily }}>
-      {lines(graph).map(([from, to, label], i) => {
-        const { points, x, y, width: w } = g.edge({ v: from, w: to, name: `${i}` });
-        const drawn = appear(delays[i]);
-        const [tail, tip] = points.slice(-2);
-        const angle = (Math.atan2(tip.y - tail.y, tip.x - tail.x) * 180) / Math.PI;
-        const red = i >= graph.edges.length;
-        const line = { fill: "none", stroke: red ? `rgb(${err})` : tone(0.5), strokeWidth: 3, strokeLinecap: "round", strokeLinejoin: "round" } as const;
-        return (
-          <g key={i}>
-            <path d={curve(points)} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - drawn} {...line} />
-            <path d="M-14,-8 L0,0 L-14,8" transform={`translate(${tip.x} ${tip.y}) rotate(${angle})`} opacity={drawn ** 4} {...line} />
-            {label && (
-              <g opacity={drawn}>
-                <rect x={x - w / 2} y={y - 0.75 * LABEL} width={w} height={1.5 * LABEL} rx={8} fill={tone(0)} />
-                <text x={x} y={y} fontSize={LABEL} fill={red ? `rgb(${err})` : tone(0.75)} textAnchor="middle" dominantBaseline="central">
-                  {label}
-                </text>
-              </g>
-            )}
-          </g>
-        );
-      })}
-      {ids.map((id, i) => {
-        const { x, y, width: w, height: h } = g.node(id);
-        const shown = appear(i * STAGGER);
-        const box = { x: -w / 2, y: -h / 2, width: w, height: h, rx: 16 };
-        return (
-          <g key={id} opacity={shown} transform={`translate(${x} ${y}) scale(${0.9 + 0.1 * shown})`}>
-            <rect {...box} fill={tone(0.07)} stroke={tone(0.3)} strokeWidth={2} />
-            <rect {...box} fill={`rgba(${hot}, 0.14)`} stroke={`rgb(${hot})`} strokeWidth={4} opacity={heat(id)} />
-            <text fontSize={fontSize} fill="currentColor" textAnchor="middle" dominantBaseline="central">
-              {graph.nodes[id]}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
+    <>
+      {/* The highlight landing on a node that throws plays a nope. */}
+      <Cues cues={cues((id) => (graph.errors ?? []).some(([from]) => from === id))} />
+      <svg width={width * scale} height={height * scale} viewBox={`0 0 ${width} ${height}`} style={{ margin: "auto", overflow: "visible", fontFamily }}>
+        {lines(graph).map(([from, to, label], i) => {
+          const { points, x, y, width: w } = g.edge({ v: from, w: to, name: `${i}` });
+          const drawn = appear(delays[i]);
+          const [tail, tip] = points.slice(-2);
+          const angle = (Math.atan2(tip.y - tail.y, tip.x - tail.x) * 180) / Math.PI;
+          const red = i >= graph.edges.length;
+          const line = { fill: "none", stroke: red ? `rgb(${err})` : tone(0.5), strokeWidth: 3, strokeLinecap: "round", strokeLinejoin: "round" } as const;
+          return (
+            <g key={i}>
+              <path d={curve(points)} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - drawn} {...line} />
+              <path d="M-14,-8 L0,0 L-14,8" transform={`translate(${tip.x} ${tip.y}) rotate(${angle})`} opacity={drawn ** 4} {...line} />
+              {label && (
+                <g opacity={drawn}>
+                  <rect x={x - w / 2} y={y - 0.75 * LABEL} width={w} height={1.5 * LABEL} rx={8} fill={tone(0)} />
+                  <text x={x} y={y} fontSize={LABEL} fill={red ? `rgb(${err})` : tone(0.75)} textAnchor="middle" dominantBaseline="central">
+                    {label}
+                  </text>
+                </g>
+              )}
+            </g>
+          );
+        })}
+        {ids.map((id, i) => {
+          const { x, y, width: w, height: h } = g.node(id);
+          const shown = appear(i * STAGGER);
+          const box = { x: -w / 2, y: -h / 2, width: w, height: h, rx: 16 };
+          return (
+            <g key={id} opacity={shown} transform={`translate(${x} ${y}) scale(${0.9 + 0.1 * shown})`}>
+              <rect {...box} fill={tone(0.07)} stroke={tone(0.3)} strokeWidth={2} />
+              <rect {...box} fill={`rgba(${hot}, 0.14)`} stroke={`rgb(${hot})`} strokeWidth={4} opacity={heat(id)} />
+              <text fontSize={fontSize} fill="currentColor" textAnchor="middle" dominantBaseline="central">
+                {graph.nodes[id]}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </>
   );
 };
