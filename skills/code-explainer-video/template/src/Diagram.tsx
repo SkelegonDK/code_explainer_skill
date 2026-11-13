@@ -1,6 +1,6 @@
 import { Graph as Dagre, layout, Point } from "@dagrejs/dagre";
 import { useMemo } from "react";
-import { ERR, HOT } from "./annotations/Mark";
+import { useThemeColors } from "./calculate-metadata/theme";
 import { Figure, STAGGER, useFigure } from "./figure";
 import { CHAR, fontFamily, fontSize, useBox } from "./font";
 
@@ -62,6 +62,7 @@ export const Diagram: React.FC<{ graph: Graph; prev: Graph | null; text: string;
   const ids = Object.keys(graph.nodes);
   const { appear, heat, landed, tone } = useFigure(graph, prev, ids.length, text, seconds);
   const box = useBox();
+  const { hot, err } = useThemeColors();
 
   // An edge draws once both its ends are in. An error edge waits until the highlight lands on the node it leaves,
   // after the error edge before it drew, so the failure shows when the narration reaches it.
@@ -86,7 +87,7 @@ export const Diagram: React.FC<{ graph: Graph; prev: Graph | null; text: string;
         const [tail, tip] = points.slice(-2);
         const angle = (Math.atan2(tip.y - tail.y, tip.x - tail.x) * 180) / Math.PI;
         const red = i >= graph.edges.length;
-        const line = { fill: "none", stroke: red ? `rgb(${ERR})` : tone(0.5), strokeWidth: 3, strokeLinecap: "round", strokeLinejoin: "round" } as const;
+        const line = { fill: "none", stroke: red ? `rgb(${err})` : tone(0.5), strokeWidth: 3, strokeLinecap: "round", strokeLinejoin: "round" } as const;
         return (
           <g key={i}>
             <path d={curve(points)} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - drawn} {...line} />
@@ -94,7 +95,7 @@ export const Diagram: React.FC<{ graph: Graph; prev: Graph | null; text: string;
             {label && (
               <g opacity={drawn}>
                 <rect x={x - w / 2} y={y - 0.75 * LABEL} width={w} height={1.5 * LABEL} rx={8} fill={tone(0)} />
-                <text x={x} y={y} fontSize={LABEL} fill={red ? `rgb(${ERR})` : tone(0.75)} textAnchor="middle" dominantBaseline="central">
+                <text x={x} y={y} fontSize={LABEL} fill={red ? `rgb(${err})` : tone(0.75)} textAnchor="middle" dominantBaseline="central">
                   {label}
                 </text>
               </g>
@@ -109,7 +110,7 @@ export const Diagram: React.FC<{ graph: Graph; prev: Graph | null; text: string;
         return (
           <g key={id} opacity={shown} transform={`translate(${x} ${y}) scale(${0.9 + 0.1 * shown})`}>
             <rect {...box} fill={tone(0.07)} stroke={tone(0.3)} strokeWidth={2} />
-            <rect {...box} fill={`rgba(${HOT}, 0.14)`} stroke={`rgb(${HOT})`} strokeWidth={4} opacity={heat(id)} />
+            <rect {...box} fill={`rgba(${hot}, 0.14)`} stroke={`rgb(${hot})`} strokeWidth={4} opacity={heat(id)} />
             <text fontSize={fontSize} fill="currentColor" textAnchor="middle" dominantBaseline="central">
               {graph.nodes[id]}
             </text>

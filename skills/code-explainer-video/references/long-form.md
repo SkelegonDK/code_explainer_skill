@@ -6,7 +6,7 @@ Work in a folder `<name>/`, in the current directory unless the user names a pla
    - the chapter list: 3-5 min each, ordered from big picture to details, one question per chapter;
    - a glossary of terms and the names to use for them;
    - the overall title and `<name>`, a title for each chapter, and each chapter's `NN-slug` (its number and its title in kebab-case);
-   - the level, the format and the voice, the same for every chapter.
+   - the level, the format, the colour theme and the voice, the same for every chapter. Choose the theme with the user as in step 8 of `SKILL.md`, on the first chapter that has a code beat, before the others are built.
 
    Confirm the chapter plan with the user (intake question 5), then build.
 2. **Chapter 00** is a 1-minute map: one architecture diagram with each later chapter as a node. With more than 8 later chapters, make each node a group of related chapters, because a diagram has at most 8 nodes.

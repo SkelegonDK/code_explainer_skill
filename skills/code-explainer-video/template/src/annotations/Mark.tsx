@@ -1,8 +1,7 @@
 import { AnnotationHandler, CodeAnnotation, HighlightedCode, InnerLine } from "codehike/code";
 import { createContext, useContext } from "react";
+import { useThemeColors } from "../calculate-metadata/theme";
 
-export const HOT = "250, 204, 21"; // the highlight colour for code and diagram nodes
-export const ERR = "248, 81, 73"; // the colour of code that throws and of diagram error edges
 const DIM = 0.4; // the opacity of the lines no mark is on, while a mark is lit
 export const PAD = 22; // px on each side of every line, inside the band
 
@@ -21,7 +20,6 @@ export const lit = ({ query }: CodeAnnotation, k: number) => read(query).from <=
 // Every mark of the code on screen, and how lit each one is now, from 0 to 1.
 export const Marks = createContext<{ all: CodeAnnotation[]; heat: (a: CodeAnnotation) => number }>({ all: [], heat: () => 0 });
 
-const rgb = (a: CodeAnnotation) => (a.name === "error" ? ERR : HOT);
 const lines = (a: CodeAnnotation) => ("lineNumber" in a ? [a.lineNumber, a.lineNumber] : [a.fromLineNumber, a.toLineNumber]);
 
 // The rows the code takes on screen: its lines, and each label, indented like the line it sits under.
@@ -37,10 +35,11 @@ export const line: AnnotationHandler = {
   name: "line",
   Line: (props) => {
     const { all, heat } = useContext(Marks);
+    const { hot, err } = useThemeColors();
     const sum = (marks: CodeAnnotation[]) => Math.min(1, marks.reduce((total, a) => total + heat(a), 0));
     const here = all.filter((a) => lines(a)[0] <= props.lineNumber && props.lineNumber <= lines(a)[1]);
     const band = sum(here.filter((a) => !("lineNumber" in a)));
-    const colour = here.some((a) => a.name === "error" && heat(a)) ? ERR : HOT;
+    const colour = here.some((a) => a.name === "error" && heat(a)) ? err : hot;
     return (
       <div
         style={{
@@ -55,7 +54,7 @@ export const line: AnnotationHandler = {
           .filter((a) => lines(a)[1] === props.lineNumber && read(a.query).label)
           .map((a, i) => (
             // The span keeps the code transition, which fades in every element without children, off the label's opacity.
-            <div key={i} style={{ opacity: heat(a), color: `rgb(${rgb(a)})`, paddingLeft: `${props.indentation}ch`, whiteSpace: "pre-wrap" }}>
+            <div key={i} style={{ opacity: heat(a), color: `rgb(${a.name === "error" ? err : hot})`, paddingLeft: `${props.indentation}ch`, whiteSpace: "pre-wrap" }}>
               <span>{read(a.query).label}</span>
             </div>
           ))}
@@ -69,6 +68,7 @@ export const mark: AnnotationHandler = {
   name: "mark",
   Inline: ({ annotation, children }) => {
     const on = useContext(Marks).heat(annotation) * 0.3;
-    return <span style={{ borderRadius: 6, backgroundColor: `rgba(${HOT}, ${on})`, boxShadow: `0 0 0 4px rgba(${HOT}, ${on})` }}>{children}</span>;
+    const { hot } = useThemeColors();
+    return <span style={{ borderRadius: 6, backgroundColor: `rgba(${hot}, ${on})`, boxShadow: `0 0 0 4px rgba(${hot}, ${on})` }}>{children}</span>;
   },
 };

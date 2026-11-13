@@ -1,4 +1,4 @@
-import { HOT } from "./annotations/Mark";
+import { useThemeColors } from "./calculate-metadata/theme";
 import { Figure, STAGGER, useFigure } from "./figure";
 import { CHAR, fontFamily, fontSize, useBox } from "./font";
 
@@ -14,6 +14,7 @@ const LOW = 6; // the least height of a bar, so a bar of 0 can still be highligh
 export const Chart: React.FC<{ chart: Chart; prev: Chart | null; text: string; seconds: number }> = ({ chart, prev, text, seconds }) => {
   const names = Object.keys(chart.data);
   const { appear, heat, tone } = useFigure(chart, prev, names.length, text, seconds);
+  const { hot } = useThemeColors();
   const isLine = chart.type === "line";
   const slot = Math.min(SLOT, Math.min(WIDTH, useBox().width) / names.length);
   const width = slot * names.length;
@@ -46,7 +47,7 @@ export const Chart: React.FC<{ chart: Chart; prev: Chart | null; text: string; s
       {points.map((p, i) => (
         <g key={p.name}>
           {mark(p, tone(0.45), 1)}
-          {mark(p, `rgb(${HOT})`, heat(p.name))}
+          {mark(p, `rgb(${hot})`, heat(p.name))}
           <text x={p.x} y={p.y - 28} opacity={p.shown * valued(p.name, i)} fill="currentColor" stroke={tone(0)} strokeWidth={10} paintOrder="stroke" fontSize={fit(values, fontSize)}>
             {values[i]}
           </text>

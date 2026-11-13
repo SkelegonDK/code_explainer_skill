@@ -7,7 +7,7 @@ description: "Make a narrated developer explainer video (Remotion + ElevenLabs) 
 
 Narrated, animated walkthroughs of code for developers. The viewer is an engineer: show real code, name real files and functions, explain *why* and *how*, never simplify into analogies for non-developers. How much the viewer already knows about the subject is asked in intake and sets what the script assumes.
 
-Stack: Remotion's Code Hike template (code in the Monokai theme that morphs between steps), diagrams and charts drawn and animated in Remotion (diagrams are laid out by dagre), ElevenLabs for narration (the ElevenLabs connector, or the API with a key), and burnt-in captions. Load the `remotion-best-practices` skill when you change the Remotion code in `template/`.
+Stack: Remotion's Code Hike template (code that morphs between steps, in one of eleven colour themes the user picks in step 8), diagrams and charts drawn and animated in Remotion (diagrams are laid out by dagre), ElevenLabs for narration (the ElevenLabs connector, or the API with a key), and burnt-in captions. Load the `remotion-best-practices` skill when you change the Remotion code in `template/`.
 
 Files next to this SKILL.md ("the skill directory"):
 - `template/`: the Remotion source files copied into every video project.
@@ -227,13 +227,14 @@ SKILL_DIR="<skill dir>" && npx create-video@latest --yes --code-hike <name> \
 
 Every later command runs in `<name>/`; start each with `cd <name> &&` if your shell does not keep the directory.
 
-`create-video` refuses to scaffold into an existing folder, which is why the script lives in `<name>-draft/` until now. Outside a git repository it also makes `<name>/` a repository of its own; inside one it does not, and the project shows up as untracked files there. Removing `.git` and adding `*` to the project's `.gitignore` keeps the project out of every repository in both cases. Twoslash is removed on purpose: it flags every unresolved import in a code excerpt as a red error. Dagre is pinned to major version 3 because the layout depends on it. The scaffold's config files, `src/index.ts`, `src/utils.ts`, `src/annotations/InlineToken.tsx` and `src/calculate-metadata/theme.tsx` stay. The copied files replace the template's composition with one driven by `beats/`:
+`create-video` refuses to scaffold into an existing folder, which is why the script lives in `<name>-draft/` until now. Outside a git repository it also makes `<name>/` a repository of its own; inside one it does not, and the project shows up as untracked files there. Removing `.git` and adding `*` to the project's `.gitignore` keeps the project out of every repository in both cases. Twoslash is removed on purpose: it flags every unresolved import in a code excerpt as a red error. Dagre is pinned to major version 3 because the layout depends on it. The scaffold's config files, `src/index.ts`, `src/utils.ts`, `src/annotations/InlineToken.tsx` stay. The copied files replace the template's composition with one driven by `beats/`:
 
 - `scripts/build.mjs` turns `beats/` into `public/beats/` (audio, visuals, `manifest.json`), measures each beat's audio and prints each beat's frame range.
 - `src/Main.tsx` plays the beats in sequence: title, visual, audio, captions.
 - `src/Diagram.tsx` and `src/Chart.tsx` draw diagram and chart beats, and `src/figure.ts` times their animation.
 - `src/annotations/Mark.tsx` implements `!mark` and `!error`, and `src/CodeTransition.tsx` times them to the sentences, and centres the code and sizes it to the frame, from its rows and its longest row. `src/Captions.tsx` times caption chunks across each beat's audio.
-- `src/Root.tsx` sets the format and the colour theme. Set `format` there to the one chosen in intake (`"16:9"` by default). The theme is `monokai`; change it only if the user asks for another, and `src/calculate-metadata/theme.tsx` lists the choices.
+- `src/Root.tsx` sets the format and the colour theme. Set `format` there to the one chosen in intake (`"16:9"` by default), and `theme` to the one chosen in step 8 (`"monokai"` by default).
+- `src/calculate-metadata/theme.tsx` defines the themes: each one's syntax colours, highlight colour and error colour.
 
 Code excerpts in `beats/` are not meant to compile, so do not run the project's `tsc` or `npm run lint`: they report errors there.
 
@@ -241,6 +242,30 @@ Code excerpts in `beats/` are not meant to compile, so do not run the project's 
 
 1. `node scripts/build.mjs` with no `beats/*.mp3` and no key writes silent placeholder audio at the estimated length, prints each beat's frame range and ends with the video's length (`8 beats, 76.0s of video`). It stops with a one-line message naming the beat when a `.txt` or visual is missing, a beat has more than one visual, an id in `edges` or `focus` is unknown, `focus` has more entries than the narration has sentences, a mark is numbered with a sentence the narration does not have, or an edge goes from a node to itself. Fix that beat and run it again.
 2. Render stills of the moments with the most on screen, and of each code beat while its marks are lit: `npx remotion still Main out/check.png --frame=<n> --scale=0.5`. Take `<n>` from the frame ranges the build printed; 60 frames are 2 s. A mark with no number is lit from 1.5 s into its beat. A numbered mark is lit while its sentence is spoken, so check a beat that has them on a contact sheet (step 9, item 1): in each tile the lit mark and its label must be what the caption is talking about. A still from the first half second of a code beat shows no code; that is the still, not the video. The first still after setup sometimes fails with a delayRender timeout; run it once more. If stills and renders keep failing with "Waiting for root component to load", which happens on a busy machine, add `--browser-executable="<path to an installed Chrome>"` to every `remotion` command. Look at the stills. Code that looks small has one long line or label holding the size down: shorten it. Fix overflowing lines and labels, marks or `!error` marks on the wrong line or lit during the wrong sentence, and captions covering code.
+3. **Theme.** Let the user choose the colour theme now, on their own code, before anything is voiced or rendered. Render the frame of the code beat with the most on screen, while its marks are lit, once in each theme, and tile the stills into one sheet:
+   ```bash
+   i=0; for t in monokai grape french-blue espresso onyx black-cherry indigo butter lavender snow papaya; do
+     i=$((i+1)); npx remotion still Main out/theme-$(printf %02d $i).png --frame=<n> --scale=0.25 --props="{\"theme\":\"$t\"}"
+   done
+   ffmpeg -y -v error -i out/theme-%02d.png -vf tile=4x3 -frames:v 1 out/themes.png
+   ```
+   Show `out/themes.png` and ask which one, listing the themes in the sheet's order, left to right and top to bottom:
+
+   | # | Theme | Look |
+   |---|---|---|
+   | 1 | `monokai` | dark, the classic editor theme (default) |
+   | 2 | `grape` | dark, vintage grape with lime cream; modern |
+   | 3 | `french-blue` | dark, French blue with celadon; modern |
+   | 4 | `espresso` | dark, espresso with peony; warm |
+   | 5 | `onyx` | dark, onyx with alabaster and blue slate; corporate |
+   | 6 | `black-cherry` | dark, black cherry with vanilla custard and old gold; classic |
+   | 7 | `indigo` | dark, indigo with coral and deep pink; colourful |
+   | 8 | `butter` | light, morning butter with blush; warm |
+   | 9 | `lavender` | light, lavender blush with French blue; corporate |
+   | 10 | `snow` | light, bright snow with inferno and periwinkle; corporate |
+   | 11 | `papaya` | light, papaya whip with cool horizon and grapefruit; colourful |
+
+   Set `theme` in `src/Root.tsx` to the answer. A choice-of-four question tool cannot hold eleven options, so ask in plain text. When running unattended, keep `monokai`.
 
 ## 9. Animate the diagrams and charts (no credits)
 

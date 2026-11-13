@@ -2,7 +2,7 @@
 
 An agent skill that turns a piece of code into a narrated, animated explainer video. It works on any scope: one line, a function, a file, or a whole architecture. It also explains language and library concepts with no codebase, using small examples it writes and runs.
 
-You ask your coding agent something like *"make a 2-minute video explaining how a request gets authenticated in this repo"*. The agent reads the code, writes a script, checks the outline with you, and renders an MP4. The video has syntax-highlighted code (Monokai) that morphs between steps and is centred and sized to fill the frame, with a highlight that follows the narration from line to line, animated diagrams and charts, a voiceover, and burnt-in captions.
+You ask your coding agent something like *"make a 2-minute video explaining how a request gets authenticated in this repo"*. The agent reads the code, writes a script, checks the outline with you, and renders an MP4. The video has syntax-highlighted code, in one of eleven colour themes, that morphs between steps and is centred and sized to fill the frame, with a highlight that follows the narration from line to line, animated diagrams and charts, a voiceover, and burnt-in captions.
 
 ## Why
 
@@ -21,7 +21,7 @@ The skill is written for developers watching. It shows real code, explains *why*
 3. **Script.** The agent writes the script as *beats*. Each beat is one visual (a code excerpt, a diagram or a chart) and one to three sentences of narration, sized to the time budget at about 150 words per minute.
 4. **Length and diagram check.** The agent estimates the runtime from the word count and checks every diagram and chart against the size limits.
 5. **Independent fact-check.** A fresh reviewer, which did not write the script, checks every claim, code excerpt, diagram and chart value against the code. Where the agent supports subagents this is a separate agent. Otherwise the agent does a second pass, reopening each piece of cited code. Nothing is built until the script passes.
-6. **Draft build.** Only now does the agent create the [Remotion](https://www.remotion.dev/) project from the [Code Hike](https://codehike.org/) template. It builds the video with silent placeholder audio and renders stills to catch overflowing code and highlights on the wrong line. Each highlight is lit while its sentence is spoken, on whole lines or on one expression, and the other lines dim. A highlight can carry a short label, such as a concrete value. Where the code can fail, the line that throws is marked red with the error it prints, under the condition that triggers it. This costs no credits.
+6. **Draft build.** Only now does the agent create the [Remotion](https://www.remotion.dev/) project from the [Code Hike](https://codehike.org/) template. It builds the video with silent placeholder audio and renders stills to catch overflowing code and highlights on the wrong line. It then renders one frame of your own code in every colour theme and asks you to choose one. Each highlight is lit while its sentence is spoken, on whole lines or on one expression, and the other lines dim. A highlight can carry a short label, such as a concrete value. Where the code can fail, the line that throws is marked red with the error it prints, under the condition that triggers it. This costs no credits.
 7. **Diagram and chart animation.** Diagrams (flows and trees) and charts (bar and line) are drawn in Remotion, not imported as images. Boxes appear one by one, arrows and lines draw themselves, bars grow, and a highlight moves from item to item as the narration reaches each one. Red error edges show where an error travels, and draw only when the narration reaches the failure. The agent checks the motion on contact sheets.
 8. **Voice and render.** The agent voices each beat, renders once, and checks that audio and video line up.
 9. **Long form.** For 15 to 30 minute onboarding videos, the agent plans chapters, writes them with parallel subagents, fact-checks each one, builds them, and joins them into one file. It also keeps the individual chapter files.
@@ -67,6 +67,54 @@ Make a 20-minute onboarding video for this codebase.
 
 Each video gets a title that names what it explains, proposed with the outline for you to approve, for example *How API sessions expire and renew*. The file is named after it (`how-api-sessions-expire-and-renew/out/how-api-sessions-expire-and-renew.mp4`), and the title is written into the MP4's metadata so video players show it. The project folder goes in the current directory unless you name a place, and it is kept out of your repository's git history. Long-form videos also get one titled file per chapter. The agent never uploads or publishes the video unless you explicitly ask it to.
 
+## Colour themes
+
+The agent asks you to pick a theme during the draft build, showing a frame of your own code in each. Every theme sets the syntax colours, the highlight on marks, diagram nodes and chart values, and the colour of errors. In the ten themes besides Monokai, every syntax colour reaches at least 3.6:1 contrast against its background. Captions are white on black in all of them.
+
+**`monokai`**: Dark. The classic editor theme, and the default.
+
+![Monokai theme](docs/themes/monokai.png)
+
+**`grape`**: Dark. Vintage grape with lime cream. Modern.
+
+![Grape theme](docs/themes/grape.png)
+
+**`french-blue`**: Dark. French blue with celadon. Modern.
+
+![French blue theme](docs/themes/french-blue.png)
+
+**`espresso`**: Dark. Espresso with peony. Warm.
+
+![Espresso theme](docs/themes/espresso.png)
+
+**`onyx`**: Dark. Onyx with alabaster and blue slate. Corporate.
+
+![Onyx theme](docs/themes/onyx.png)
+
+**`black-cherry`**: Dark. Black cherry with vanilla custard and old gold. Classic.
+
+![Black cherry theme](docs/themes/black-cherry.png)
+
+**`indigo`**: Dark. Indigo with coral and deep pink. Colourful.
+
+![Indigo theme](docs/themes/indigo.png)
+
+**`butter`**: Light. Morning butter with blush. Warm.
+
+![Butter theme](docs/themes/butter.png)
+
+**`lavender`**: Light. Lavender blush with French blue. Corporate.
+
+![Lavender theme](docs/themes/lavender.png)
+
+**`snow`**: Light. Bright snow with inferno and periwinkle. Corporate.
+
+![Snow theme](docs/themes/snow.png)
+
+**`papaya`**: Light. Papaya whip with cool horizon and grapefruit. Colourful.
+
+![Papaya theme](docs/themes/papaya.png)
+
 ## Getting the most out of ElevenLabs
 
 [ElevenLabs](https://elevenlabs.io) gives the best results and is the default. There are two ways to connect it.
@@ -105,6 +153,7 @@ skills/code-explainer-video/
   references/
     voice.md               ElevenLabs connector, API key, other providers, silent fallback
     long-form.md           15-30 minute videos built as parallel chapters
+docs/themes/               a screenshot of each colour theme
 ```
 
 The agent scaffolds a fresh project from the official Code Hike template for each video and copies `template/` over it. The template files were last tested with Remotion 4.0.543 and dagre 3.1.3.
