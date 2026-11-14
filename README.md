@@ -1,6 +1,6 @@
 # code-explainer-video
 
-An agent skill that turns a piece of code into a narrated, animated explainer video. It works on any scope: one line, a function, a file, or a whole architecture. It also explains language and library concepts with no codebase, using small examples it writes and runs.
+An agent skill that turns a piece of code into a narrated, animated explainer video. It works on any scope: one line, a function, a file, or a whole architecture. It also explains language and library concepts with no codebase, using small examples it writes and runs. On request it makes two other kinds of video: a code review, and a neutral description of a pull request.
 
 You ask your coding agent something like *"make a 2-minute video explaining how a request gets authenticated in this repo"*. The agent reads the code, writes a script, checks the outline with you, and renders an MP4. The video has syntax-highlighted code, in one of eleven colour themes, that morphs between steps and is centred and sized to fill the frame, with a highlight that follows the narration from line to line, animated diagrams and charts, a voiceover, burnt-in captions, and optional background music and interface sounds.
 
@@ -13,6 +13,18 @@ Reading unfamiliar code is slow, and written docs drift out of date. A short vid
 - record how a subsystem works before the person who wrote it moves on.
 
 The skill is written for developers watching. It shows real code, explains *why* and *how*, and avoids analogies meant for non-technical viewers. Every claim in the narration has to map to a file and line the agent actually read, and a reviewer that did not write the script checks it against the code itself before anything is built.
+
+## Three kinds of video
+
+The skill makes an explainer unless you ask for one of the other two.
+
+| Kind | What it does | Ask for it with |
+|---|---|---|
+| **Explainer** (default) | Explains how code works. | *"Make a video explaining…"* |
+| **Code review** | Reviews the code, then presents each finding with the reasoning behind it: the concrete failure, walked through step by step, and what would have prevented it. The video follows the review's judgement exactly: the story never changes a finding or its severity. Findings are stated as the review's opinion, facts as facts. A fresh reviewer tries to refute every finding before anything is built, and you also get the written review. | *"Make a code review video of this branch."* |
+| **Pull request** | Describes what a pull request changes, before and after, and what that touches in the codebase it merges into, including callers outside the diff. It reports and does not judge: no praise, no criticism, no merge recommendation, and every reason is attributed to the author. | *"Make a video of pull request 128."* |
+
+All three share one pipeline. The two extra kinds are short files that change a few of its steps: [`references/code-review.md`](skills/code-explainer-video/references/code-review.md) and [`references/pull-request.md`](skills/code-explainer-video/references/pull-request.md). A pull request video needs the [`gh` CLI](https://cli.github.com/) to read a pull request from GitHub; two local branches work without it.
 
 ## How it works
 
@@ -63,9 +75,24 @@ Ask in plain language. The agent picks up the skill from its description, or you
 Make a 30-second video explaining the retry loop in src/http/client.ts.
 Explain how jobs move through the queue in this repo, about 5 minutes. I'm new to it.
 Make a 20-minute onboarding video for this codebase.
+Make a code review video of my uncommitted changes.
+Make a 2-minute video of pull request 128.
 ```
 
-Each video gets a title that names what it explains, proposed with the outline for you to approve, for example *How API sessions expire and renew*. The file is named after it (`how-api-sessions-expire-and-renew/out/how-api-sessions-expire-and-renew.mp4`), and the title is written into the MP4's metadata so video players show it. The project folder goes in the current directory unless you name a place, and it is kept out of your repository's git history. Long-form videos also get one titled file per chapter. The agent never uploads or publishes the video unless you explicitly ask it to.
+In Claude Code, the other two kinds also work as arguments: `/code-explainer-video review` and `/code-explainer-video pr 128`.
+
+Each video gets a title that names what it explains, proposed with the outline for you to approve, for example *How API sessions expire and renew*. The file is named after it, and the title is written into the MP4's metadata so video players show it. Long-form videos also get one titled file per chapter. The agent never uploads or publishes the video unless you explicitly ask it to.
+
+Everything goes in one folder at the root of your repository, unless you name another place:
+
+```text
+Code explainer video/
+  export/                                    the rendered videos
+    how-api-sessions-expire-and-renew.mp4
+  how-api-sessions-expire-and-renew/         that video's project: script, Remotion source, stills
+```
+
+The folder ignores itself, so nothing in it enters your repository's git history. A video project is about 1 GB while it is being built, nearly all of it `node_modules`. The agent deletes that once you accept the video, which leaves a few megabytes; `npm i` in the project restores it if you want a change later. It does so with a script that refuses any folder that is not a video project, so your codebase's own `node_modules` is never touched.
 
 ## Colour themes
 
@@ -115,32 +142,32 @@ The agent asks you to pick a theme during the draft build, showing a frame of yo
 
 ![Papaya theme](docs/themes/papaya.png)
 
-## Getting the most out of ElevenLabs
+## Narration
 
-[ElevenLabs](https://elevenlabs.io) gives the best results and is the default. There are two ways to connect it.
+The agent looks for a voice in this order.
 
-**The ElevenLabs connector (recommended).** Connect ElevenLabs in your agent (in Claude, under connector settings). The agent then voices each beat directly, with no API key to manage. It asks for one take per beat, since the video uses only one, and prices the narration first, so it tells you the credit cost before it voices more than about ten beats. It uses the `eleven_v4` model.
+**1. An ElevenLabs MCP server (recommended).** [ElevenLabs](https://elevenlabs.io) gives the best results. Connect it in your agent (in Claude, under connector settings). It is usually signed in already, so the agent voices each beat with no key to manage. It asks for one take per beat, since the video uses only one, and prices the narration first, so it tells you the credit cost before it voices more than about ten beats. It uses the `eleven_v4` model.
 
-**An API key.** Create a key in the ElevenLabs dashboard and give it to the agent when asked. The agent keeps it in an environment variable and never writes it to a file. This path also makes one take per beat, with `eleven_multilingual_v2` by default, and it sends the previous and next beat's text with each request, which keeps the intonation consistent across beats.
+**2. A provider you choose.** Without ElevenLabs tools, the agent asks which provider to use and where your `.env` file is. It never asks for the key and never opens the file: Node loads it when the build runs, so the key stays out of the conversation.
+
+| Provider | Line in your `.env` file | Default voice and model |
+|---|---|---|
+| ElevenLabs | `ELEVENLABS_API_KEY=…` | George, `eleven_multilingual_v2` |
+| OpenAI | `OPENAI_API_KEY=…` | `cedar`, `gpt-4o-mini-tts` |
+| Google | `GEMINI_API_KEY=…` | `Charon`, `gemini-3.8-flash-tts` |
+| [Kokoro](https://github.com/hexgrad/kokoro) | none | `af_heart`. A free model from Hugging Face that runs on your machine. It takes about 500 MB in the video project, deleted with its `node_modules`. |
+
+**3. Anything else.** The skill accepts one audio file per beat from any source: Azure, Amazon Polly, [Piper](https://github.com/rhasspy/piper), or the macOS `say` command. Tell the agent which one to use. It saves each beat as `beats/NN.mp3` and converts other formats with `ffmpeg`.
+
+**4. No voice.** The build writes silent placeholder audio timed to the narration. The captions are burnt in, so the video can be read as it plays. This works well for async review and for drafts, and you can add a voice later without rebuilding anything else.
 
 Tips:
 
-- **Approve the outline before voicing.** Credits are spent per character of narration. Changes are cheap during the silent draft pass and expensive afterwards.
+- **Approve the outline before voicing.** Hosted providers charge per character of narration. Changes are cheap during the silent draft pass and expensive afterwards.
 - **Change one beat at a time.** Only beats whose narration changed need new audio, so fixing one sentence costs one beat. The build stops rather than play audio that no longer matches its narration.
-- **Use one path for the whole video.** The two paths use different models, so mixing them within a video changes how beats sound.
-- **Use one calm narrator for the whole video,** and for every chapter of a long one. The skill picks from ElevenLabs' educational voices by default. Name a voice if you have a favourite.
+- **Use one provider and one voice for the whole video,** and for every chapter of a long one. Mixing them changes how beats sound. Name a voice if you have a favourite.
 - **Fix pronunciation by respelling.** If a voice mangles an identifier, the agent respells it phonetically in that beat's script and re-voices only that beat.
-- **Budget for length.** One minute of narration is about 150 words, or roughly 900 characters. Check the [pricing page](https://elevenlabs.io/pricing) to see how many credits your plan includes and how many each model uses per character.
-
-## Without an ElevenLabs account
-
-You still get a full video.
-
-- **Silent video with captions.** Without a key or connector, the build writes silent placeholder audio timed to the narration. The captions are burnt in, so the video can be read as it plays. This works well for async review and for drafts.
-- **Another text-to-speech provider.** The skill accepts one audio file per beat from any source: OpenAI, Google Cloud, Azure or Amazon Polly. Tell the agent which one to use.
-- **Free and local.** [Kokoro](https://github.com/hexgrad/kokoro) and [Piper](https://github.com/rhasspy/piper) run offline and sound good. On macOS, the built-in `say` command works with no setup, though it sounds robotic.
-
-The agent saves each beat as `beats/NN.mp3` and converts other formats with `ffmpeg`. The rest of the pipeline stays the same. You can switch to ElevenLabs later and re-voice every beat without rebuilding anything else.
+- **Budget for length.** One minute of narration is about 150 words, or roughly 900 characters.
 
 ## Repository layout
 
@@ -148,14 +175,17 @@ The agent saves each beat as `beats/NN.mp3` and converts other formats with `ffm
 skills/code-explainer-video/
   SKILL.md                 the workflow: intake, research, beats, fact-check, draft, animation, voice, render
   scripts/setup.sh         scaffolds each video project and copies the assets into it
+  scripts/clean.sh         deletes a finished video project's node_modules, and nothing else
   assets/
     audio/                 a music loop and interface sounds
     template/              Remotion source files copied over the official Code Hike template
       scripts/build.mjs    beats/ → audio, visuals and a manifest
       src/                 composition, diagrams, charts, captions, code marks
   references/
-    voice.md               ElevenLabs connector, API key, other providers, silent fallback
+    voice.md               ElevenLabs MCP server, a provider key in an .env file, a local model, silent fallback
     long-form.md           15-30 minute videos built as parallel chapters
+    code-review.md         the code review video: findings and their reasoning
+    pull-request.md        the pull request video: a neutral description of what changes
 docs/themes/               a screenshot of each colour theme
 ```
 

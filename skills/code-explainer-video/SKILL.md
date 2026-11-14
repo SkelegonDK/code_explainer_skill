@@ -1,23 +1,35 @@
 ---
 name: "code-explainer-video"
-description: "Make a narrated developer explainer video (Remotion + ElevenLabs) about a line, block, file, or architecture of a codebase, or about a language or library concept with no codebase, for onboarding yourself or a teammate."
-allowed-tools: Read, Grep, Glob, Bash(node scripts/build.mjs), Bash(npx remotion still:*), Bash(npx remotion render:*), Bash(ffmpeg:*), Bash(ffprobe:*)
+description: "Make a narrated developer explainer video (Remotion + ElevenLabs) about a line, block, file, or architecture of a codebase, or about a language or library concept with no codebase, for onboarding yourself or a teammate. On request it instead makes a code review video (a review's findings and reasoning, exactly as the review judged them) or a pull request video (a neutral description of what a pull request changes and what that touches)."
+allowed-tools: Read, Grep, Glob, Bash(node scripts/build.mjs), Bash(npx remotion still:*), Bash(npx remotion render:*), Bash(ffmpeg:*), Bash(ffprobe:*), Bash(git diff:*), Bash(git show:*), Bash(git log:*), Bash(git merge-base:*), Bash(gh pr view:*), Bash(gh pr diff:*)
 ---
 
 # Code explainer video
 
 Narrated, animated walkthroughs of code for developers. The viewer is an engineer: show real code, name real files and functions, explain *why* and *how*, never simplify into analogies for non-developers. How much the viewer already knows about the subject is asked in intake and sets what the script assumes.
 
-Stack: Remotion's Code Hike template (code that morphs between steps, in one of eleven colour themes the user picks in step 8), diagrams and charts drawn and animated in Remotion (diagrams are laid out by dagre), ElevenLabs for narration (the ElevenLabs connector, or the API with a key), and burnt-in captions. Load the `remotion-best-practices` skill when you change the Remotion code in `assets/template/`.
+Stack: Remotion's Code Hike template (code that morphs between steps, in one of eleven colour themes the user picks in step 8), diagrams and charts drawn and animated in Remotion (diagrams are laid out by dagre), narration by ElevenLabs through its MCP server, or else by a provider the user chooses (ElevenLabs, OpenAI or Google with a key from an `.env` file, or a local model), and burnt-in captions. Load the `remotion-best-practices` skill when you change the Remotion code in `assets/template/`.
 
 Files next to this SKILL.md ("the skill directory"):
 - `scripts/setup.sh`: builds the video project in step 7.
+- `scripts/clean.sh`: deletes a finished video project's `node_modules` in step 11.
 - `assets/template/`: the Remotion source files copied into every video project.
 - `references/voice.md`: read in step 10, before generating narration.
 - `references/long-form.md`: read first when the video is 15-30 minutes; it splits the work into chapters, says who runs which step for each, and joins them.
+- `references/code-review.md` and `references/pull-request.md`: the two other kinds of video (see "Kinds of video").
 - `assets/audio/`: a music loop and interface sounds (click, pop, whoosh, nope; four variants each), copied into every video project in step 7.
 
-`<name>-draft/` and the video project `<name>/` go in the current directory unless the user names a place. Both are kept out of git (steps 2 and 7), so they never enter the user's repository.
+Everything the skill makes goes in one folder, `Code explainer video/`, at the root of the repository the video is about (the current directory for a concept video), unless the user names a place. It holds each video's `<name>-draft/` and video project `<name>/`, and `export/`, where the rendered videos go. Its `.gitignore` (step 2) keeps the whole folder out of git, so nothing in it enters the user's repository. Paths in the steps below are relative to it. Its name has spaces, so quote it in commands.
+
+## Kinds of video
+
+Make an explainer unless the user asks for one of the other two, in words ("a review video of this branch", "a video of pull request 128") or as an argument (`review`, `pr 128`). For those, read the file before intake: it changes some of the steps below and leaves the rest as written.
+
+| Kind | The video | Read first |
+|---|---|---|
+| **Explainer** (default) | explains how code works | |
+| **Code review** | presents a review, exactly as the review judged it: each finding and the reasoning behind it | `references/code-review.md` |
+| **Pull request** | describes neutrally what a pull request changes and what that touches in the codebase it merges into | `references/pull-request.md` |
 
 ## Concept topics (no codebase)
 
@@ -55,14 +67,14 @@ Ask one at a time (AskUserQuestion when available). Do not skip or merge them.
    - the level, the length, the format and the beat count;
    - the outline: one line per beat (what is on screen + the point it makes);
    - anything you're leaving out on purpose.
-   Build only after a yes. Revise and re-confirm on a no. This step exists because narration costs ElevenLabs credits and renders take minutes.
+   Build only after a yes. Revise and re-confirm on a no. This step exists because narration costs credits and renders take minutes.
 
 When running unattended (no one to answer), pick the most reasonable reading, state it at the top of your reply, and go on.
 
 ## 2. Research the code before writing a word
 
 - Read the actual code. Trace calls to their definitions; don't infer behaviour from names. For a large codebase, fan out with one read-only subagent per area, if your agent supports subagents, and keep only their conclusions.
-- Start the draft folder with `mkdir -p <name>-draft/beats && echo '*' > <name>-draft/.gitignore`; the `.gitignore` keeps it out of any enclosing repository.
+- Start the folder and the draft with `mkdir -p "Code explainer video/<name>-draft/beats" && echo '*' > "Code explainer video/.gitignore"`; the `.gitignore` keeps the folder out of the repository.
 - Record which code the video describes: `echo "$(basename "$(git -C <repo> rev-parse --show-toplevel)")@$(git -C <repo> describe --always --dirty --exclude='*')" > <name>-draft/commit.txt`, which writes e.g. `shop-api@3f9c2e1`. A `-dirty` ending means it includes uncommitted changes. When the code is not in git, write just the folder name. The video shows this line, and the build requires a file title on every code beat once it exists.
 - Every claim in the narration must map to a file and line you read. Keep `<name>-draft/notes.md`, a log of `claim → path:line` while you research; you use it when fixing problems found in step 6.
 - Note what a developer would trip on: hidden side effects, ordering assumptions, error paths, config that changes behaviour, naming that lies.
@@ -92,14 +104,16 @@ Beat rules:
 - Open with the question being answered and close with a one-line recap. No intro fluff, no "in this video".
 - Architecture first, then zoom in: diagram, then the entry-point code, then the interesting line.
 - Explain purpose, not lines. Each code beat says what the code is *for* and how it connects to the previous beat, then points at the one or two lines that matter. Never walk through a block line by line.
-- Code beats: at most the lines and characters per line of the format (the bottom of the frame is reserved for captions). Cut irrelevant lines and replace them with a `// ...` comment. The code is centred and sized to fill the frame: an excerpt at those limits is set at about 32 px, and a shorter and narrower one grows, up to 80 px, so every line you cut and every long line you shorten makes the rest easier to read. In the narrow formats, rewrap long lines (one argument per line) rather than shorten names.
+- Code beats: at most the lines and characters per line of the format (the bottom of the frame is reserved for captions). Cut irrelevant lines and replace them with a `// ...` comment, in the language's comment syntax. The code is centred and sized to fill the frame: an excerpt at those limits is set at about 32 px, and a shorter and narrower one grows, up to 80 px, so every line you cut and every long line you shorten makes the rest easier to read. Remove the indentation that every line shares, and rewrap a line that is too long (one argument per line) rather than shorten names.
 
   | Format | Lines | Characters per line | On-screen title |
   |---|---|---|---|
   | 16:9 | 16 | 80 | 100 characters |
   | 9:16 | 30 | 44 | 55 characters |
   | 4:5 | 20 | 44 | 55 characters |
-  | 1:1 | 16 | 44 | 55 characters | A beat that repeats the previous beat's snippet keeps the code still and moves only the marks.
+  | 1:1 | 16 | 44 | 55 characters |
+
+  A beat that repeats the previous beat's snippet, with the same labels, keeps the code still and moves only the marks.
 - Mark what the narration is talking about with a Code Hike comment directly above it, in the language's comment syntax (`# !mark` in Python): `// !mark` (next line), `// !mark(1:4)` (next four lines), or `// !mark[/expiresAt/]` (the part of the next line that matches the regex), which boxes one name or expression when the point is not the whole line. While a mark is lit, the lines without one are dimmed.
 - Time each mark to the sentence that talks about it by putting the sentence's number after it: `// !mark 2` is lit during the second sentence of the beat's narration, `// !mark(1:3) 2-3` during the second and third, and a mark with no number during the whole beat. Leave the first sentence unmarked when it says what the code is for, so the viewer sees the whole excerpt first, and move the mark as the following sentences point at lines. Marks may overlap.
 - A mark can carry a label, written after the number: `// !mark 2 runs on every request`. It shows under the mark's last line while the mark is lit. Use one for what the code cannot show and the narration cannot hold on screen: a concrete value (`s.expiresAt = 10:31, now = 10:45`), a result (`returns null`), or a name for what the lines do. At most two per beat. A label is indented like its line and must fit the format's characters per line with that indentation. It is a claim, so it is fact-checked like the narration. A label whose first word is a number needs a sentence range before it (`// !mark 1-3 3 retries at most`).
@@ -112,8 +126,8 @@ Beat rules:
 
 The script comes first, and nothing is built until it has passed steps 5 and 6. Write it in `<name>-draft/beats/`, one pair of files per beat, numbered so they sort (`01`, `02`, … `10`):
 
-- `NN.txt`: first line `# <on-screen title>`, then the narration. A code beat's title is its file and lines, `path/to/file.ts:42-60`, relative to the repository root; diagrams and charts take a short heading. The title is optional only in concept videos.
-- One visual: `NN.<ext>` with the code excerpt (the extension sets the highlighting language: `.ts`, `.py`, `.go`, …) **or** `NN.diagram.json` with a diagram **or** `NN.chart.json` with a chart.
+- `NN.txt`: first line `# <on-screen title>`, then the narration. A code beat's title is its file and lines, `path/to/file.ts:42-60`, relative to the repository root; diagrams and charts take a short heading. When a path makes the title longer than the format allows (step 3), replace its leading folders with `…/`. The title is optional only in concept videos.
+- One visual: `NN.<ext>` with the code excerpt (the extension sets the highlighting language: `.ts`, `.py`, `.go`, …; save `.mjs` and `.cjs` code as `.js`, because an extension the highlighter does not know shows as plain text with its marks printed) **or** `NN.diagram.json` with a diagram **or** `NN.chart.json` with a chart.
 
 Example code beat:
 
@@ -212,18 +226,18 @@ In both diagrams and charts:
 The author of a script is the worst person to check it. Have a reviewer that did not write it check every claim and every diagram against the code. Do this even when running unattended.
 
 - **If your agent supports subagents**, start a fresh one. Give it the repository path, every file in `<name>-draft/beats/`, and this brief, but not `notes.md` or your outline, so that it forms its own reading of the code:
-  > Check this explainer script against the code. List every factual claim in the narration, in the on-screen titles and in the labels of marks (the text after `// !mark`, and after its sentence number if it has one). For each, find the code that confirms or contradicts it, tracing calls to their definitions. Return one row per claim: `beat | claim | correct / wrong / unverifiable | path:line | why`. For each diagram (`.diagram.json`, where `nodes` maps ids to labels and an edge is `[from, to, label]`), check that every node is a real module, function or component, that every edge is a real call or data flow in the direction drawn, that every edge in `errors` is an error that really travels from the first node to the second, and that no edge important to the narration is missing; report each problem as a row. For each `// !error <message>` in a code excerpt (a number or range before the message is the sentence it shows during, not part of it), check that the line under it throws, rejects or returns that error, with that type and message, under the condition the narration states, and that the narration says correctly where it is caught. For each chart (`.chart.json`), check every value and the unit against its `source`, opening the file or rerunning the command; a value you cannot check is `unverifiable`. Also flag code excerpts that differ from the source (other than `// ...` cuts and `!mark` and `!error` comments), titles whose `path:line` range is wrong, anything important about this code that the script states misleadingly, and code beats whose narration walks through the lines without saying what the code is for.
+  > Check this explainer script against the code. List every factual claim in the narration, in the on-screen titles and in the labels of marks (the text after `// !mark`, and after its sentence number if it has one). For each, find the code that confirms or contradicts it, tracing calls to their definitions. Return one row per claim: `beat | claim | correct / wrong / unverifiable | path:line | why`. For each diagram (`.diagram.json`, where `nodes` maps ids to labels and an edge is `[from, to, label]`), check that every node is a real module, function or component, that every edge is a real call or data flow in the direction drawn, that every edge in `errors` is an error that really travels from the first node to the second, and that no edge important to the narration is missing; report each problem as a row. For each `// !error <message>` in a code excerpt (a number or range before the message is the sentence it shows during, not part of it), check that the line under it throws, rejects or returns that error, with that type and message, under the condition the narration states, and that the narration says correctly where it is caught. For each chart (`.chart.json`), check every value and the unit against its `source`, opening the file or rerunning the command; a value you cannot check is `unverifiable`. Also flag code excerpts that differ from the source (other than `// ...` cuts, rewrapped lines, removed indentation, and `!mark` and `!error` comments), titles whose `path:line` range is wrong, anything important about this code that the script states misleadingly, and code beats whose narration walks through the lines without saying what the code is for.
 - **Otherwise**, do a second pass yourself: for each claim, node and edge, reopen the cited code and check it there, not against `notes.md`.
 
 Fix every `wrong` row, cut or soften every `unverifiable` one, and rewrite flagged line-by-line beats around their purpose. Rerun step 5 after the fixes, because they change the length too. Send only the changed beats back, to the same reviewer if it can be resumed, otherwise to a fresh one with the same brief. Repeat until a check returns no `wrong` or `unverifiable` row; fix any remaining wording notes without another round.
 
 ## 7. Project setup (once per video)
 
-Only now build the video project. In the folder that holds `<name>-draft/`, run `bash "<skill dir>/scripts/setup.sh" <name>`, with the skill directory's absolute path in place of `<skill dir>`.
+Only now build the video project. In `Code explainer video/`, run `bash "<skill dir>/scripts/setup.sh" <name>`, with the skill directory's absolute path in place of `<skill dir>`.
 
 Every later command runs in `<name>/`; start each with `cd <name> &&` if your shell does not keep the directory.
 
-The script scaffolds `<name>/` from Remotion's Code Hike template, moves the beats into it, and copies `assets/template/` over it and `assets/audio/` into `public/audio/`. It pins Remotion and dagre to the versions the template was last tested with; the Code Hike template itself always comes from its latest commit. `create-video` refuses to scaffold into an existing folder, which is why the script lives in `<name>-draft/` until now. The script removes the project's `.git` and adds `*` to its `.gitignore`, which keeps it out of every repository, and removes Twoslash, which flags every unresolved import in a code excerpt as a red error. The copied files replace the template's composition with one driven by `beats/`:
+The script scaffolds `<name>/` from Remotion's Code Hike template, moves the beats into it, and copies `assets/template/` over it and `assets/audio/` into `public/audio/`. It pins Remotion and dagre to the versions the template was last tested with; the Code Hike template itself always comes from its latest commit. `create-video` refuses to scaffold into an existing folder, which is why the beats live in `<name>-draft/` until now. The script removes the project's `.git` and adds `*` to its `.gitignore`, which keeps it out of every repository, and removes Twoslash, which flags every unresolved import in a code excerpt as a red error. The copied files replace the template's composition with one driven by `beats/`:
 
 - `scripts/build.mjs` turns `beats/` into `public/beats/` (audio, visuals, `manifest.json`), measures each beat's audio and prints each beat's frame range.
 - `src/Main.tsx` plays the beats in sequence: title, visual, audio, captions. It shows `commit.txt` in the bottom right corner throughout.
@@ -237,7 +251,7 @@ Code excerpts in `beats/` are not meant to compile, so do not run the project's 
 
 ## 8. Draft build (no credits)
 
-1. `node scripts/build.mjs` with no `beats/*.mp3` and no key writes silent placeholder audio at the estimated length, prints each beat's frame range and ends with the video's length (`8 beats, 76.0s of video`). It stops with a one-line message naming the beat when a `.txt` or visual is missing, a beat has more than one visual, an id in `edges` or `focus` is unknown, `focus` has more entries than the narration has sentences, a mark is numbered with a sentence the narration does not have, an edge goes from a node to itself, or a code beat has no title while `commit.txt` exists. Fix that beat and run it again.
+1. `node scripts/build.mjs` with no `beats/*.mp3` and no `TTS` writes silent placeholder audio at the estimated length, prints each beat's frame range and ends with the video's length (`8 beats, 76.0s of video`). It stops with a one-line message naming the beat when a `.txt` or visual is missing, a beat has more than one visual, an id in `edges` or `focus` is unknown, `focus` has more entries than the narration has sentences, a mark is numbered with a sentence the narration does not have, an edge goes from a node to itself, or a code beat has no title while `commit.txt` exists. Fix that beat and run it again.
 2. Render stills of the moments with the most on screen, and of each code beat while its marks are lit: `npx remotion still Main out/check.png --frame=<n> --scale=0.5`. Take `<n>` from the frame ranges the build printed; 60 frames are 2 s. A mark with no number is lit from 1.5 s into its beat. A numbered mark is lit while its sentence is spoken, so check a beat that has them on a contact sheet (step 9, item 1): in each tile the lit mark and its label must be what the caption is talking about. A still from the first half second of a code beat shows no code; that is the still, not the video. The first still after setup sometimes fails with a delayRender timeout; run it once more. If stills and renders keep failing with "Waiting for root component to load", which happens on a busy machine, add `--browser-executable="<path to an installed Chrome>"` to every `remotion` command. Look at the stills. Code that looks small has one long line or label holding the size down: shorten it. Fix overflowing lines and labels, marks or `!error` marks on the wrong line or lit during the wrong sentence, and captions covering code.
 3. **Theme.** Let the user choose the colour theme now, on their own code, before anything is voiced or rendered. Render the frame of the code beat with the most on screen, while its marks are lit, once in each theme, and tile the stills into one sheet:
    ```bash
@@ -288,14 +302,15 @@ A still cannot show motion, so check each run of diagram or chart beats on a con
 
 ## 10. Voice and render
 
-1. Read `references/voice.md` and generate one narration file per beat with the first option available: the ElevenLabs connector, an ElevenLabs API key, another text-to-speech provider, or none (silent video with captions). Use one voice for the whole video.
+1. Read `references/voice.md` and generate one narration file per beat with the first option available: an ElevenLabs MCP server, a provider the user chooses (a key in an `.env` file, or a local model), another text-to-speech tool, or none (silent video with captions). Never ask for a key, and never read an `.env` file. Use one voice for the whole video.
    Also ask whether the video should have music and sound effects, with these four options: both (the default), sound effects only, music only, or neither. Set `music` and `sounds` in `src/Root.tsx` to match. When running unattended, keep both.
-2. `node scripts/build.mjs` again. Each beat's audio comes from `beats/NN.mp3`, else the API when a key is set, else silent placeholder. A rebuild without the key keeps beats voiced through the API. The build never plays stale narration: if a beat's narration changed and its audio did not, it stops and names the beat to re-voice. Changing the voice or the model re-voices every API-voiced beat.
-3. Render once: `npx remotion render Main out/<name>.mp4 --metadata title="<title>" --metadata comment="$(cat commit.txt 2>/dev/null)"`. Check that video and audio durations match (`ffprobe -v error -show_entries stream=codec_type,duration -of csv=p=0 out/<name>.mp4`) and, unless the video is meant to be silent, that no beat still has placeholder audio: `grep -c '"from": "silent"' public/beats/audio.json` prints 0. Measuring the volume of the render cannot tell, because the music and sound effects play over placeholder narration too.
+2. Build again, with `TTS` as `voice.md` says when a provider voices the beats. Each beat's audio comes from `beats/NN.mp3`, else from the provider that `TTS` names, else it is the silent placeholder. A rebuild without `TTS` keeps the beats a provider voiced. The build never plays stale narration: if a beat's narration changed and its audio did not, it stops and names the beat to re-voice. Changing the provider, the voice or the model re-voices every beat a provider voiced.
+3. Render once, into the export folder: `npx remotion render Main ../export/<name>.mp4 --metadata title="<title>" --metadata comment="$(cat commit.txt 2>/dev/null)"`. Check that video and audio durations match (`ffprobe -v error -show_entries stream=codec_type,duration -of csv=p=0 ../export/<name>.mp4`) and, unless the video is meant to be silent, that no beat still has placeholder audio: `grep -c '"from": "silent"' public/beats/audio.json` prints 0. Measuring the volume of the render cannot tell, because the music and sound effects play over placeholder narration too.
 
 ## 11. Before handing over
 
 - Watch, or at least listen to, the first and last beats and one in the middle. If an identifier is mispronounced, respell it phonetically in `NN.txt` and re-voice only that beat. Captions show the narration text, so a phonetic respelling appears there too; keep respellings readable.
 - If you cannot listen, say so in the hand-over: pronunciation is unchecked. List the identifiers most likely to be mispronounced, with their beats, so the user knows where to listen. Transcribing the audio to check it costs credits, so do it only if the user agrees.
 - Any narration, code excerpt, diagram or chart that changed after step 6 goes back through it. The wording fixes that step 6 lets you make without another round are the one exception.
-- Deliver `out/<name>.mp4` under its title, with a one-line summary of the question it answers. For a codebase, add the commit and the files the video covers: the build's last line lists the code beats' files, and `notes.md` holds the files behind the diagrams. If the commit ends in `-dirty`, say that the video shows uncommitted changes. Tell the user where the project folder `<name>/` is and that it is not part of their repository's history. Never upload or publish it anywhere without explicit permission.
+- Deliver `export/<name>.mp4` under its title, with a one-line summary of the question it answers. For a codebase, add the commit and the files the video covers: the build's last line lists the code beats' files, and `notes.md` holds the files behind the diagrams. If the commit ends in `-dirty`, say that the video shows uncommitted changes. Tell the user that the video is in `Code explainer video/export/`, that its project is `Code explainer video/<name>/`, and that the folder is not part of their repository's history. Never upload or publish it anywhere without explicit permission.
+- Once the user accepts the video, run `bash "<skill dir>/scripts/clean.sh" <name>` in `Code explainer video/` and say so. It deletes the video project's `node_modules`, about 1 GB, which `npm i` in `<name>/` restores for a later change. When running unattended, run it after the checks above. Delete a `node_modules` only with this script, never with `rm`: the user's repository has its own, and the script refuses any folder that is not a video project.
